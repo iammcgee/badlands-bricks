@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <rect width="1200" height="900" fill="#121212"/>
+  <rect x="160" y="290" width="540" height="230" rx="16" fill="#f4f4f4"/>
+  <rect x="160" y="290" width="180" height="80" fill="#ff5a00"/>
+  <circle cx="290" cy="580" r="82" fill="#222"/><circle cx="290" cy="580" r="40" fill="#666"/>
+  <circle cx="560" cy="580" r="82" fill="#222"/><circle cx="560" cy="580" r="40" fill="#666"/>
+  <text x="760" y="430" fill="#fff" font-family="Arial" font-size="42" font-weight="700">TROPHY TRUCK</text>
+  <text x="760" y="490" fill="#ff5a00" font-family="Arial" font-size="28">Product photo</text>
+</svg>

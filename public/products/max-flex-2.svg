@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <rect width="1200" height="900" fill="#101010"/>
+  <rect x="220" y="260" width="480" height="250" rx="16" fill="#777"/>
+  <circle cx="330" cy="580" r="78" fill="#222"/><circle cx="330" cy="580" r="38" fill="#666"/>
+  <circle cx="580" cy="580" r="78" fill="#222"/><circle cx="580" cy="580" r="38" fill="#666"/>
+  <text x="760" y="430" fill="#fff" font-family="Arial" font-size="42" font-weight="700">MAX FLEX</text>
+  <text x="760" y="485" fill="#ff5a00" font-family="Arial" font-size="26">Angle 2</text>
+</svg>

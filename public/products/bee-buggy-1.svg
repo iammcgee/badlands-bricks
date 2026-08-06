@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <rect width="1200" height="900" fill="#141414"/>
+  <rect x="180" y="300" width="500" height="220" rx="16" fill="#f0c400"/>
+  <rect x="180" y="300" width="500" height="40" fill="#111"/>
+  <circle cx="300" cy="580" r="80" fill="#222"/><circle cx="300" cy="580" r="40" fill="#666"/>
+  <circle cx="540" cy="580" r="80" fill="#222"/><circle cx="540" cy="580" r="40" fill="#666"/>
+  <text x="760" y="430" fill="#fff" font-family="Arial" font-size="48" font-weight="700">BEE BUGGY</text>
+  <text x="760" y="490" fill="#ff5a00" font-family="Arial" font-size="28">Product photo</text>
+</svg>
