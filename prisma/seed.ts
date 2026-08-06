@@ -15,10 +15,6 @@ const products = [
       "/products/max-flex-1.jpg",
       "/products/max-flex-2.jpg",
       "/products/max-flex-3.jpg",
-      "/products/max-flex-4.jpg",
-      "/products/max-flex-5.jpg",
-      "/products/max-flex-6.jpg",
-      "/products/max-flex-7.jpg",
     ],
     downloadFilePath: "product-files/max-flex-instructions.pdf",
   },
@@ -83,7 +79,6 @@ async function main() {
   mkdirSync(join(process.cwd(), "product-files"), { recursive: true });
   mkdirSync(join(process.cwd(), "public", "products"), { recursive: true });
 
-  // Remove products that should not be live yet.
   await prisma.product.deleteMany({ where: { slug: "semi-truck" } });
 
   for (const product of products) {
