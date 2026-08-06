@@ -45,15 +45,6 @@ const products = [
     images: ["/products/trophy-truck-1.jpg", "/products/trophy-truck-2.jpg"],
     downloadFilePath: "product-files/trophy-truck-instructions.pdf",
   },
-  {
-    slug: "semi-truck",
-    name: "Semi Truck",
-    priceCents: 0,
-    description:
-      "Haul big builds with this custom brick-built Semi Truck. Built for presence on the table and fun on the floor — a bold Badlands Bricks original.",
-    images: ["/products/semi-truck-1.jpg", "/products/semi-truck-2.jpg"],
-    downloadFilePath: "product-files/semi-truck-instructions.pdf",
-  },
 ];
 
 function ensurePlaceholderPdf(relativePath: string, title: string) {
@@ -91,6 +82,9 @@ async function main() {
   mkdirSync(join(process.cwd(), "uploads"), { recursive: true });
   mkdirSync(join(process.cwd(), "product-files"), { recursive: true });
   mkdirSync(join(process.cwd(), "public", "products"), { recursive: true });
+
+  // Remove products that should not be live yet.
+  await prisma.product.deleteMany({ where: { slug: "semi-truck" } });
 
   for (const product of products) {
     ensurePlaceholderPdf(product.downloadFilePath, product.name);

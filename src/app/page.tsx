@@ -21,7 +21,7 @@ export default async function HomePage() {
       <section className="relative min-h-[78vh] overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/products/hero.jpg')" }}
+          style={{ backgroundImage: "url('/products/hero.webp')" }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/25 to-black" />
 
