@@ -9,7 +9,7 @@ export default function SubmitMocsPage() {
         <div className="overflow-hidden bg-neutral-900">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/products/trophy-truck-1.svg"
+            src="/products/trophy-truck-1.jpg"
             alt="Custom LEGO trophy truck"
             className="aspect-square w-full object-cover"
           />
