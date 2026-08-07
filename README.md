@@ -7,9 +7,11 @@ MVP features:
 - Home, BUILD catalog, product pages (same black / orange brand)
 - Cart + Stripe Checkout for paid digital instruction downloads
 - Free products skip Stripe and issue download tokens immediately
+- Email/password accounts with favorites (hearts) and creator follows
+- Live “X online” presence counter
 - Submit Your MOCs (file uploads)
 - Contact form
-- Minimal password-protected `/admin` for orders, submissions, and messages
+- Minimal password-protected `/admin` for orders, submissions, messages, and creator assignment
 
 ## Quick start
 
@@ -31,8 +33,9 @@ Copy `.env.example` to `.env` and fill in:
 
 | Variable | Purpose |
 |----------|---------|
-| `DATABASE_URL` | SQLite path (`file:./dev.db`) |
+| `DATABASE_URL` | Postgres connection string (Neon recommended) |
 | `NEXT_PUBLIC_SITE_URL` | Public site URL (needed for Stripe redirects) |
+| `AUTH_SECRET` | Secret for Auth.js session cookies (`openssl rand -base64 32`) |
 | `STRIPE_SECRET_KEY` | Stripe secret key |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (optional for this MVP) |
@@ -91,4 +94,4 @@ For production file uploads and PDFs, move `uploads/` and `product-files/` to ob
 
 ## Out of scope (later)
 
-Kid accounts, likes, community feed, kid marketplace/payouts, parts lists, and migrating historical Squarespace orders.
+OAuth login, auto-creating creators from MOC submissions, notifications/DMs, creator payouts, parts lists, and migrating historical Squarespace orders.

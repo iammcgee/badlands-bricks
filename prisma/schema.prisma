@@ -7,6 +7,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String            @id @default(cuid())
+  email         String            @unique
+  passwordHash  String
+  name          String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  favorites     Favorite[]
+  follows       Follow[]
+  presence      PresenceSession[]
+}
+
+model Creator {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  displayName String
+  bio         String     @default("")
+  avatarPath  String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  products    Product[]
+  followers   Follow[]
+}
+
 model Product {
   id               String      @id @default(cuid())
   slug             String      @unique
@@ -16,9 +40,42 @@ model Product {
   imagesJson       String      @default("[]")
   downloadFilePath String?
   isActive         Boolean     @default(true)
+  creatorId        String
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
+  creator          Creator     @relation(fields: [creatorId], references: [id])
   orderItems       OrderItem[]
+  favorites        Favorite[]
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model Follow {
+  id             String   @id @default(cuid())
+  followerUserId String
+  creatorId      String
+  createdAt      DateTime @default(now())
+  follower       User     @relation(fields: [followerUserId], references: [id], onDelete: Cascade)
+  creator        Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([followerUserId, creatorId])
+}
+
+model PresenceSession {
+  id         String   @id @default(cuid())
+  sessionKey String   @unique
+  userId     String?
+  lastSeenAt DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
 model Order {
@@ -54,15 +111,15 @@ model DownloadToken {
 }
 
 model MocSubmission {
-  id               String   @id @default(cuid())
-  mocName          String
-  theme            String
-  photoPathsJson   String   @default("[]")
-  instructionPathsJson String @default("[]")
-  notes            String?
-  status           String   @default("new")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  mocName              String
+  theme                String
+  photoPathsJson       String   @default("[]")
+  instructionPathsJson String   @default("[]")
+  notes                String?
+  status               String   @default("new")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model ContactMessage {

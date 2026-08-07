@@ -1,4 +1,5 @@
 import { ProductCard } from "@/components/ProductCard";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { toProductView } from "@/lib/products";
 
@@ -12,23 +13,44 @@ export default async function BuildPage({
 }) {
   const { q } = await searchParams;
   const query = (q || "").trim();
+  const session = await auth();
 
-  const products = (
-    await prisma.product.findMany({
-      where: {
-        isActive: true,
-        ...(query
-          ? {
-              OR: [
-                { name: { contains: query } },
-                { description: { contains: query } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: { name: "asc" },
-    })
-  ).map(toProductView);
+  const records = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      ...(query
+        ? {
+            OR: [
+              { name: { contains: query, mode: "insensitive" } },
+              { description: { contains: query, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
+    include: {
+      creator: true,
+      _count: { select: { favorites: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  const favoritedIds = session?.user?.id
+    ? new Set(
+        (
+          await prisma.favorite.findMany({
+            where: {
+              userId: session.user.id,
+              productId: { in: records.map((p) => p.id) },
+            },
+            select: { productId: true },
+          })
+        ).map((row) => row.productId),
+      )
+    : new Set<string>();
+
+  const products = records.map((product) =>
+    toProductView(product, favoritedIds.has(product.id)),
+  );
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">

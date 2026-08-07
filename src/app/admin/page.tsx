@@ -35,6 +35,20 @@ async function markReviewedAction(formData: FormData) {
   redirect("/admin");
 }
 
+async function assignCreatorAction(formData: FormData) {
+  "use server";
+  if (!(await isAdminAuthenticated())) redirect("/admin");
+  const productId = String(formData.get("productId") || "");
+  const creatorId = String(formData.get("creatorId") || "");
+  if (!productId || !creatorId) redirect("/admin");
+
+  await prisma.product.update({
+    where: { id: productId },
+    data: { creatorId },
+  });
+  redirect("/admin");
+}
+
 async function logoutAction() {
   "use server";
   const jar = await cookies();
@@ -75,7 +89,7 @@ export default async function AdminPage({
     );
   }
 
-  const [orders, submissions, contacts] = await Promise.all([
+  const [orders, submissions, contacts, products, creators] = await Promise.all([
     prisma.order.findMany({
       include: { items: { include: { product: true } } },
       orderBy: { createdAt: "desc" },
@@ -86,6 +100,11 @@ export default async function AdminPage({
       orderBy: { createdAt: "desc" },
       take: 50,
     }),
+    prisma.product.findMany({
+      include: { creator: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.creator.findMany({ orderBy: { displayName: "asc" } }),
   ]);
 
   return (
@@ -98,6 +117,58 @@ export default async function AdminPage({
           </button>
         </form>
       </div>
+
+      <section>
+        <h2 className="font-display text-2xl text-white">Creators</h2>
+        <div className="mt-4 space-y-2 text-sm text-white/80">
+          {creators.map((creator) => (
+            <div key={creator.id} className="border border-white/15 px-4 py-3">
+              <span className="font-semibold text-white">{creator.displayName}</span>
+              <span className="text-white/50"> · /creators/{creator.slug}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="font-display text-2xl text-white">Assign Creator to MOC</h2>
+        <div className="mt-4 space-y-3">
+          {products.map((product) => (
+            <form
+              key={product.id}
+              action={assignCreatorAction}
+              className="flex flex-col gap-3 border border-white/15 p-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <input type="hidden" name="productId" value={product.id} />
+              <div>
+                <p className="font-semibold text-white">{product.name}</p>
+                <p className="text-xs text-white/50">
+                  Current: {product.creator.displayName}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <select
+                  name="creatorId"
+                  defaultValue={product.creatorId}
+                  className="border border-white/20 bg-black px-3 py-2 text-sm text-white outline-none focus:border-brand-orange"
+                >
+                  {creators.map((creator) => (
+                    <option key={creator.id} value={creator.id}>
+                      {creator.displayName}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  className="border border-brand-orange px-4 py-2 text-xs font-bold tracking-[0.12em] text-brand-orange"
+                >
+                  SAVE
+                </button>
+              </div>
+            </form>
+          ))}
+        </div>
+      </section>
 
       <section>
         <h2 className="font-display text-2xl text-white">Orders</h2>

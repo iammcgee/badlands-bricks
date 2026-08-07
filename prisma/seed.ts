@@ -79,6 +79,22 @@ async function main() {
   mkdirSync(join(process.cwd(), "product-files"), { recursive: true });
   mkdirSync(join(process.cwd(), "public", "products"), { recursive: true });
 
+  const creator = await prisma.creator.upsert({
+    where: { slug: "badlands-bricks" },
+    update: {
+      displayName: "Badlands Bricks",
+      bio: "Official Badlands Bricks MOCs and building instructions.",
+      avatarPath: "/brand/logo.png",
+    },
+    create: {
+      id: "creator_badlands_bricks",
+      slug: "badlands-bricks",
+      displayName: "Badlands Bricks",
+      bio: "Official Badlands Bricks MOCs and building instructions.",
+      avatarPath: "/brand/logo.png",
+    },
+  });
+
   await prisma.product.deleteMany({ where: { slug: "semi-truck" } });
 
   for (const product of products) {
@@ -92,6 +108,7 @@ async function main() {
         imagesJson: JSON.stringify(product.images),
         downloadFilePath: product.downloadFilePath,
         isActive: true,
+        creatorId: creator.id,
       },
       create: {
         slug: product.slug,
@@ -101,11 +118,12 @@ async function main() {
         imagesJson: JSON.stringify(product.images),
         downloadFilePath: product.downloadFilePath,
         isActive: true,
+        creatorId: creator.id,
       },
     });
   }
 
-  console.log(`Seeded ${products.length} products.`);
+  console.log(`Seeded creator + ${products.length} products.`);
 }
 
 main()
