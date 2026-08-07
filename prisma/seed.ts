@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { mkdirSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
