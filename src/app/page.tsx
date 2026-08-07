@@ -1,17 +1,39 @@
 import Link from "next/link";
 import { ProductCard } from "@/components/ProductCard";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { toProductView } from "@/lib/products";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const products = (
-    await prisma.product.findMany({
-      where: { isActive: true },
-      orderBy: { name: "asc" },
-    })
-  ).map(toProductView);
+  const session = await auth();
+  const products = await prisma.product.findMany({
+    where: { isActive: true },
+    include: {
+      creator: true,
+      _count: { select: { favorites: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  const favoriteIds = session?.user?.id
+    ? new Set(
+        (
+          await prisma.favorite.findMany({
+            where: {
+              userId: session.user.id,
+              productId: { in: products.map((p) => p.id) },
+            },
+            select: { productId: true },
+          })
+        ).map((f) => f.productId),
+      )
+    : new Set<string>();
+
+  const views = products.map((product) =>
+    toProductView(product, favoriteIds.has(product.id)),
+  );
 
   const marquee =
     "DISCOVER CUSTOM LEGO® MOCS & UNIQUE BUILDING INSTRUCTIONS. ";
@@ -47,7 +69,7 @@ export default async function HomePage() {
           MOCS
         </h2>
         <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product) => (
+          {views.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>

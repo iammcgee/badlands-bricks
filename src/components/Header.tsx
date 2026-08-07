@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AccountMenu } from "@/components/AccountMenu";
 import { useCart } from "@/components/CartProvider";
+import { OnlineCounter } from "@/components/OnlineCounter";
 import { LOGO_SRC, YOUTUBE_URL } from "@/lib/site";
 
 const nav = [
@@ -30,7 +32,7 @@ export function Header() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav className="hidden items-center gap-6 lg:flex">
           {nav.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -49,6 +51,8 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3 md:gap-4">
+          <OnlineCounter />
+          <AccountMenu />
           <a
             href={YOUTUBE_URL}
             target="_blank"
@@ -75,7 +79,7 @@ export function Header() {
         </div>
       </div>
 
-      <nav className="flex items-center justify-center gap-4 border-t border-white/10 px-4 py-2 md:hidden">
+      <nav className="flex items-center justify-center gap-4 border-t border-white/10 px-4 py-2 lg:hidden">
         {nav.map((item) => (
           <Link
             key={item.href}

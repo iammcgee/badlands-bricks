@@ -1,4 +1,12 @@
-import { Product } from "@prisma/client";
+import { Creator, Product } from "@prisma/client";
+
+export type CreatorView = {
+  id: string;
+  slug: string;
+  displayName: string;
+  bio: string;
+  avatarPath: string | null;
+};
 
 export type ProductView = {
   id: string;
@@ -9,6 +17,10 @@ export type ProductView = {
   images: string[];
   downloadFilePath: string | null;
   isActive: boolean;
+  creatorId: string;
+  creator?: CreatorView;
+  favoriteCount?: number;
+  favoritedByMe?: boolean;
 };
 
 export function parseImages(imagesJson: string): string[] {
@@ -22,7 +34,20 @@ export function parseImages(imagesJson: string): string[] {
   }
 }
 
-export function toProductView(product: Product): ProductView {
+export function toCreatorView(creator: Creator): CreatorView {
+  return {
+    id: creator.id,
+    slug: creator.slug,
+    displayName: creator.displayName,
+    bio: creator.bio,
+    avatarPath: creator.avatarPath,
+  };
+}
+
+export function toProductView(
+  product: Product & { creator?: Creator; _count?: { favorites: number } },
+  favoritedByMe = false,
+): ProductView {
   return {
     id: product.id,
     slug: product.slug,
@@ -32,6 +57,10 @@ export function toProductView(product: Product): ProductView {
     images: parseImages(product.imagesJson),
     downloadFilePath: product.downloadFilePath,
     isActive: product.isActive,
+    creatorId: product.creatorId,
+    creator: product.creator ? toCreatorView(product.creator) : undefined,
+    favoriteCount: product._count?.favorites ?? 0,
+    favoritedByMe,
   };
 }
 
