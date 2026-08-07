@@ -1,13 +1,21 @@
 import Link from "next/link";
+import { LOGO_SRC, YOUTUBE_URL } from "@/lib/site";
 
 export function Footer() {
   return (
     <footer className="mt-auto border-t border-white/10 bg-black">
       <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 px-4 py-12 md:px-8">
         <div className="flex items-center gap-6">
-          <LogoMark />
+          <Link href="/" aria-label="Badlands Bricks home">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={LOGO_SRC}
+              alt="Badlands Bricks"
+              className="h-20 w-20 rounded-full object-contain"
+            />
+          </Link>
           <a
-            href="https://www.youtube.com"
+            href={YOUTUBE_URL}
             target="_blank"
             rel="noreferrer"
             aria-label="YouTube"
@@ -36,35 +44,5 @@ export function Footer() {
         </p>
       </div>
     </footer>
-  );
-}
-
-function LogoMark() {
-  return (
-    <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-white bg-white text-center">
-      <div>
-        <svg
-          width="48"
-          height="28"
-          viewBox="0 0 64 36"
-          fill="none"
-          aria-hidden
-          className="mx-auto"
-        >
-          <path
-            d="M4 28 L16 10 L24 18 L34 6 L44 16 L52 8 L60 28 Z"
-            fill="#111"
-          />
-          <circle cx="18" cy="8" r="2.2" fill="#ff5a00" />
-          <circle cx="34" cy="4" r="2.2" fill="#ff5a00" />
-          <circle cx="50" cy="6" r="2.2" fill="#ff5a00" />
-        </svg>
-        <p className="mt-0.5 font-display text-[8px] leading-none tracking-wider text-black">
-          BADLANDS
-          <br />
-          BRICKS
-        </p>
-      </div>
-    </div>
   );
 }

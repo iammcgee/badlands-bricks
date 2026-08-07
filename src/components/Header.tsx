@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/components/CartProvider";
+import { LOGO_SRC, YOUTUBE_URL } from "@/lib/site";
 
 const nav = [
   { href: "/build", label: "BUILD" },
@@ -16,12 +17,17 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-black/90 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-8">
-        <Link
-          href="/"
-          className="font-display text-lg tracking-[0.08em] text-white md:text-xl"
-        >
-          BADLANDS BRICKS
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-8">
+        <Link href="/" className="flex items-center gap-3 text-white">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={LOGO_SRC}
+            alt="Badlands Bricks"
+            className="h-10 w-10 object-contain md:h-12 md:w-12"
+          />
+          <span className="font-display text-lg tracking-[0.08em] md:text-xl">
+            BADLANDS BRICKS
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
@@ -44,7 +50,7 @@ export function Header() {
 
         <div className="flex items-center gap-3 md:gap-4">
           <a
-            href="https://www.youtube.com"
+            href={YOUTUBE_URL}
             target="_blank"
             rel="noreferrer"
             aria-label="YouTube"
