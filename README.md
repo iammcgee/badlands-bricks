@@ -33,7 +33,8 @@ Copy `.env.example` to `.env` and fill in:
 
 | Variable | Purpose |
 |----------|---------|
-| `DATABASE_URL` | Postgres connection string (Neon recommended) |
+| `DATABASE_URL` | Postgres connection string (Neon pooled / `-pooler` URL is fine) |
+| `DIRECT_URL` | Neon **direct** (non-pooler) URL — required for `prisma migrate deploy` |
 | `NEXT_PUBLIC_SITE_URL` | Public site URL (needed for Stripe redirects) |
 | `AUTH_SECRET` | Secret for Auth.js session cookies (`openssl rand -base64 32`) |
 | `STRIPE_SECRET_KEY` | Stripe secret key |
