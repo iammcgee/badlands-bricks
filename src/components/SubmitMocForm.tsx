@@ -75,17 +75,34 @@ export function SubmitMocForm({
     setMessage("");
     setBusyPdf(true);
     try {
-      const blob = await buildInstructionsPdf({
-        mocName: mocName.trim(),
-        builderName,
-        steps,
-      });
+      // Start roomy, then shrink automatically if the PDF would fail Blob upload.
+      const presets = [
+        { maxEdge: 1200, quality: 0.72 },
+        { maxEdge: 1000, quality: 0.65 },
+        { maxEdge: 850, quality: 0.58 },
+      ] as const;
+      const maxPdfBytes = 95 * 1024 * 1024;
+      let blob: Blob | null = null;
+      let used = presets[0];
+      for (const preset of presets) {
+        used = preset;
+        blob = await buildInstructionsPdf({
+          mocName: mocName.trim(),
+          builderName,
+          steps,
+          maxEdge: preset.maxEdge,
+          quality: preset.quality,
+        });
+        if (blob.size <= maxPdfBytes) break;
+      }
+      if (!blob) throw new Error("Could not build PDF");
       if (pdfUrl) URL.revokeObjectURL(pdfUrl);
       const url = URL.createObjectURL(blob);
       setPdfBlob(blob);
       setPdfUrl(url);
+      const mb = (blob.size / (1024 * 1024)).toFixed(1);
       setMessage(
-        `Instructions PDF ready with ${steps.length} step${steps.length === 1 ? "" : "s"} in order.`,
+        `Instructions PDF ready with ${steps.length} step${steps.length === 1 ? "" : "s"} (${mb} MB${used.maxEdge < 1200 ? ", compressed for upload" : ""}).`,
       );
     } catch (error) {
       setMessage(

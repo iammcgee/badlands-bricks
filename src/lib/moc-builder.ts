@@ -109,13 +109,10 @@ export async function fileToJpegBytes(
 /** Normalize phone photos (including HEIC) to JPEG before Blob upload. */
 export async function normalizeMocImageFile(
   file: File,
-  maxEdge = 2000,
-  quality = 0.85,
+  maxEdge = 1600,
+  quality = 0.8,
 ): Promise<File> {
-  if (file.type === "image/jpeg" && !isHeicLike(file)) {
-    // Still recompress very large JPEGs so uploads stay reliable.
-    if (file.size <= 3 * 1024 * 1024) return file;
-  }
+  // Always recompress so iPhone originals don't blow past upload limits.
   const bytes = await fileToJpegBytes(file, maxEdge, quality);
   const baseName = file.name.replace(/\.[^.]+$/, "") || "photo";
   const copy = new Uint8Array(bytes.byteLength);
@@ -127,7 +124,12 @@ export async function buildInstructionsPdf(options: {
   mocName: string;
   builderName: string;
   steps: MocMediaItem[];
+  /** Smaller values keep multi-step PDFs under Blob limits. */
+  maxEdge?: number;
+  quality?: number;
 }): Promise<Blob> {
+  const maxEdge = options.maxEdge ?? 1200;
+  const quality = options.quality ?? 0.72;
   const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -178,7 +180,7 @@ export async function buildInstructionsPdf(options: {
 
   for (let index = 0; index < options.steps.length; index += 1) {
     const step = options.steps[index];
-    const jpeg = await fileToJpegBytes(step.file);
+    const jpeg = await fileToJpegBytes(step.file, maxEdge, quality);
     const image = await pdf.embedJpg(jpeg);
     const pageWidth = 612;
     const pageHeight = 792;

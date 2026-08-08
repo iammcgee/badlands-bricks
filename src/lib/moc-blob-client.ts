@@ -6,11 +6,22 @@ import { normalizeMocImageFile } from "@/lib/moc-builder";
 
 async function uploadOne(file: File, folder: string) {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const blob = await upload(`moc-submissions/${folder}/${safeName}`, file, {
-    access: "public",
-    handleUploadUrl: "/api/moc-blob/upload",
-  });
-  return blob.url;
+  try {
+    const blob = await upload(`moc-submissions/${folder}/${safeName}`, file, {
+      access: "public",
+      handleUploadUrl: "/api/moc-blob/upload",
+    });
+    return blob.url;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/too large|greater than|maximumSizeInBytes|413/i.test(message)) {
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      throw new Error(
+        `"${file.name}" is ${mb} MB and still too large to upload. Try fewer/smaller photos, or rebuild the PDF.`,
+      );
+    }
+    throw error instanceof Error ? error : new Error(message);
+  }
 }
 
 export async function uploadMocAssets(input: {
