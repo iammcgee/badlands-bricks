@@ -132,11 +132,16 @@ export default async function AdminOverviewPage({
 
       <div className="grid gap-8 lg:grid-cols-2">
         <section>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <h2 className="font-display text-2xl text-white">Latest MOCs</h2>
-            <Link href="/admin/mocs" className="text-xs text-brand-orange">
-              VIEW ALL
-            </Link>
+            <div className="flex gap-3">
+              <Link href="/admin/mocs/new" className="text-xs text-brand-orange">
+                CREATE MOC
+              </Link>
+              <Link href="/admin/mocs" className="text-xs text-white/50 hover:text-brand-orange">
+                VIEW ALL
+              </Link>
+            </div>
           </div>
           <div className="mt-4 space-y-3">
             {recentMocs.length === 0 && (

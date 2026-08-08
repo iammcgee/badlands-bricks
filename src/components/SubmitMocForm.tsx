@@ -10,13 +10,17 @@ import {
   revokeMediaItems,
 } from "@/lib/moc-builder";
 
-export function SubmitMocForm() {
-  const { data: session } = useSession();
-  const [builderName, setBuilderName] = useState("");
-  const [builderEmail, setBuilderEmail] = useState("");
+type SubmitMocFormProps = {
+  mode?: "user" | "admin";
+};
+
+export function SubmitMocForm({ mode = "user" }: SubmitMocFormProps) {
+  const { data: session, status: sessionStatus } = useSession();
+  const isAdmin = mode === "admin";
   const [mocName, setMocName] = useState("");
   const [theme, setTheme] = useState("");
   const [notes, setNotes] = useState("");
+  const [adminStatus, setAdminStatus] = useState("approved");
   const [photos, setPhotos] = useState<MocMediaItem[]>([]);
   const [steps, setSteps] = useState<MocMediaItem[]>([]);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -28,14 +32,10 @@ export function SubmitMocForm() {
   const [message, setMessage] = useState("");
   const [submittedId, setSubmittedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (session?.user?.name && !builderName) {
-      setBuilderName(session.user.name);
-    }
-    if (session?.user?.email && !builderEmail) {
-      setBuilderEmail(session.user.email);
-    }
-  }, [session, builderName, builderEmail]);
+  const builderName =
+    session?.user?.name?.trim() ||
+    session?.user?.email?.split("@")[0] ||
+    "Builder";
 
   useEffect(() => {
     return () => {
@@ -49,14 +49,21 @@ export function SubmitMocForm() {
   const canBuildPdf = steps.length > 0 && mocName.trim().length > 0;
   const canSubmit = useMemo(
     () =>
-      builderName.trim() &&
-      builderEmail.trim() &&
+      (isAdmin || Boolean(session?.user?.id)) &&
       mocName.trim() &&
       theme.trim() &&
       photos.length > 0 &&
       steps.length > 0 &&
       Boolean(pdfBlob),
-    [builderName, builderEmail, mocName, theme, photos.length, steps.length, pdfBlob],
+    [
+      isAdmin,
+      session?.user?.id,
+      mocName,
+      theme,
+      photos.length,
+      steps.length,
+      pdfBlob,
+    ],
   );
 
   async function onBuildPdf() {
@@ -65,7 +72,7 @@ export function SubmitMocForm() {
     try {
       const blob = await buildInstructionsPdf({
         mocName: mocName.trim(),
-        builderName: builderName.trim() || "Builder",
+        builderName,
         steps,
       });
       if (pdfUrl) URL.revokeObjectURL(pdfUrl);
@@ -86,6 +93,11 @@ export function SubmitMocForm() {
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    if (!isAdmin && !session?.user?.id) {
+      setMessage("Log in to submit a MOC.");
+      setStatus("error");
+      return;
+    }
     if (!pdfBlob) {
       setMessage("Build the instructions PDF before submitting.");
       setStatus("error");
@@ -97,11 +109,10 @@ export function SubmitMocForm() {
 
     try {
       const data = new FormData();
-      data.set("builderName", builderName.trim());
-      data.set("builderEmail", builderEmail.trim());
       data.set("mocName", mocName.trim());
       data.set("theme", theme.trim());
       if (notes.trim()) data.set("notes", notes.trim());
+      if (isAdmin) data.set("status", adminStatus);
 
       photos.forEach((item, index) => {
         const named = new File(
@@ -130,17 +141,22 @@ export function SubmitMocForm() {
         ),
       );
 
-      const response = await fetch("/api/submit-moc", {
-        method: "POST",
-        body: data,
-      });
+      const response = await fetch(
+        isAdmin ? "/api/admin/create-moc" : "/api/submit-moc",
+        {
+          method: "POST",
+          body: data,
+        },
+      );
       const json = (await response.json()) as { error?: string; id?: string };
       if (!response.ok) throw new Error(json.error || "Submit failed");
 
       setStatus("done");
       setSubmittedId(json.id || null);
       setMessage(
-        "Thanks! Your MOC was submitted for review. Track its status anytime in My MOCs.",
+        isAdmin
+          ? "MOC created in the admin portal."
+          : "Thanks! Your MOC was submitted for review. Track its status anytime in My MOCs.",
       );
       revokeMediaItems(photos);
       revokeMediaItems(steps);
@@ -150,34 +166,52 @@ export function SubmitMocForm() {
       if (pdfUrl) URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
       setNotes("");
+      setMocName("");
+      setTheme("");
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Submit failed");
     }
   }
 
+  if (!isAdmin && sessionStatus === "loading") {
+    return <p className="text-sm text-white/60">Checking your account…</p>;
+  }
+
+  if (!isAdmin && !session?.user) {
+    return (
+      <div className="border border-white/15 px-5 py-8 text-white/70">
+        <p>You need to be logged in to create and submit a MOC.</p>
+        <Link
+          href="/login?next=/submit-your-mocs"
+          className="mt-4 inline-block bg-brand-orange px-5 py-3 text-xs font-bold tracking-[0.14em] text-white"
+        >
+          LOG IN TO CONTINUE
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={onSubmit} className="space-y-8">
       <section className="grid gap-4 border border-white/15 p-5 md:grid-cols-2">
-        <label className="block space-y-2">
-          <span className="text-sm text-white">Your Name</span>
-          <input
-            value={builderName}
-            onChange={(event) => setBuilderName(event.target.value)}
-            required
-            className="w-full border border-white/25 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-brand-orange"
-          />
-        </label>
-        <label className="block space-y-2">
-          <span className="text-sm text-white">Your Email</span>
-          <input
-            type="email"
-            value={builderEmail}
-            onChange={(event) => setBuilderEmail(event.target.value)}
-            required
-            className="w-full border border-white/25 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-brand-orange"
-          />
-        </label>
+        {!isAdmin ? (
+          <div className="md:col-span-2 border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+            Submitting as{" "}
+            <span className="font-semibold text-white">{builderName}</span>
+            {session?.user?.email ? (
+              <>
+                {" "}
+                · <span className="text-white/55">{session.user.email}</span>
+              </>
+            ) : null}
+          </div>
+        ) : (
+          <div className="md:col-span-2 border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+            Staff upload — attributed to your admin account. Defaults to
+            approved so it skips the public review queue.
+          </div>
+        )}
         <label className="block space-y-2">
           <span className="text-sm text-white">MOC Name</span>
           <input
@@ -204,7 +238,23 @@ export function SubmitMocForm() {
             className="w-full border border-white/25 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-brand-orange"
           />
         </label>
-        <label className="block space-y-2 md:col-span-2">
+        {isAdmin ? (
+          <label className="block space-y-2">
+            <span className="text-sm text-white">Status</span>
+            <select
+              value={adminStatus}
+              onChange={(event) => setAdminStatus(event.target.value)}
+              className="w-full border border-white/25 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-brand-orange"
+            >
+              <option value="approved">Approved</option>
+              <option value="new">Pending review</option>
+              <option value="needs_changes">Needs changes</option>
+            </select>
+          </label>
+        ) : null}
+        <label
+          className={`block space-y-2 ${isAdmin ? "" : "md:col-span-2"}`}
+        >
           <span className="text-sm text-white">Notes (optional)</span>
           <textarea
             value={notes}
@@ -283,34 +333,46 @@ export function SubmitMocForm() {
           <p>{message}</p>
           {status === "done" ? (
             <p>
-              <Link href="/my-mocs" className="text-brand-orange underline">
-                Open My MOCs
-              </Link>
-              {submittedId ? (
+              {isAdmin ? (
                 <>
-                  {" "}
-                  or{" "}
-                  <Link
-                    href={`/my-mocs/${submittedId}`}
-                    className="text-brand-orange underline"
-                  >
-                    view this submission
+                  <Link href="/admin/mocs" className="text-brand-orange underline">
+                    Back to MOC Reviews
                   </Link>
+                  {submittedId ? (
+                    <>
+                      {" "}
+                      or{" "}
+                      <Link
+                        href={`/admin/mocs/${submittedId}`}
+                        className="text-brand-orange underline"
+                      >
+                        open this MOC
+                      </Link>
+                    </>
+                  ) : null}
                 </>
-              ) : null}
+              ) : (
+                <>
+                  <Link href="/my-mocs" className="text-brand-orange underline">
+                    Open My MOCs
+                  </Link>
+                  {submittedId ? (
+                    <>
+                      {" "}
+                      or{" "}
+                      <Link
+                        href={`/my-mocs/${submittedId}`}
+                        className="text-brand-orange underline"
+                      >
+                        view this submission
+                      </Link>
+                    </>
+                  ) : null}
+                </>
+              )}
             </p>
           ) : null}
         </div>
-      ) : null}
-
-      {!session?.user ? (
-        <p className="text-sm text-white/55">
-          Tip:{" "}
-          <Link href="/login?next=/submit-your-mocs" className="text-brand-orange">
-            log in
-          </Link>{" "}
-          first so your submission shows up under My MOCs automatically.
-        </p>
       ) : null}
 
       <button
@@ -318,7 +380,13 @@ export function SubmitMocForm() {
         disabled={status === "loading" || !canSubmit}
         className="w-full border-2 border-brand-orange bg-black px-6 py-4 text-sm font-bold tracking-[0.16em] text-brand-orange transition hover:bg-brand-orange hover:text-white disabled:opacity-50"
       >
-        {status === "loading" ? "SUBMITTING…" : "SUBMIT MOC FOR REVIEW"}
+        {status === "loading"
+          ? isAdmin
+            ? "CREATING…"
+            : "SUBMITTING…"
+          : isAdmin
+            ? "CREATE MOC"
+            : "SUBMIT MOC FOR REVIEW"}
       </button>
     </form>
   );

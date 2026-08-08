@@ -1,9 +1,16 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SubmitMocForm } from "@/components/SubmitMocForm";
+import { auth } from "@/lib/auth";
 
 export const metadata = { title: "SUBMIT YOUR MOCS" };
 
-export default function SubmitMocsPage() {
+export default async function SubmitMocsPage() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login?next=/submit-your-mocs");
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-12 md:px-8">
       <div className="max-w-3xl">
@@ -16,8 +23,11 @@ export default function SubmitMocsPage() {
         <p className="mt-4 text-white/70">
           Upload your photos, drag them into the right order, and we&apos;ll
           turn your instruction steps into a clean PDF — right here, no Adobe
-          needed. After you send it, Badlands reviews it in the admin portal,
-          and you can track approval under{" "}
+          needed. You&apos;re signed in as{" "}
+          <span className="text-white">
+            {session.user.name || session.user.email}
+          </span>
+          , so we already have your name and email. Track approval under{" "}
           <Link href="/my-mocs" className="text-brand-orange hover:underline">
             My MOCs
           </Link>
@@ -25,7 +35,7 @@ export default function SubmitMocsPage() {
         </p>
       </div>
       <div className="mt-10">
-        <SubmitMocForm />
+        <SubmitMocForm mode="user" />
       </div>
     </div>
   );
