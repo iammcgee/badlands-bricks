@@ -31,7 +31,8 @@ export async function POST(request: Request): Promise<NextResponse> {
             "application/pdf",
           ],
           addRandomSuffix: true,
-          maximumSizeInBytes: 20 * 1024 * 1024,
+          // Match roomy instruction PDFs (~30 steps). Images are compressed client-side first.
+          maximumSizeInBytes: 100 * 1024 * 1024,
           tokenPayload: JSON.stringify({
             userId: session?.user?.id ?? admin?.userId ?? null,
             admin: Boolean(admin),
