@@ -2,6 +2,7 @@
 
 import { upload } from "@vercel/blob/client";
 import type { MocMediaItem } from "@/lib/moc-builder";
+import { normalizeMocImageFile } from "@/lib/moc-builder";
 
 async function uploadOne(file: File, folder: string) {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -23,13 +24,16 @@ export async function uploadMocAssets(input: {
   const photoUrls: string[] = [];
   for (let i = 0; i < input.photos.length; i += 1) {
     input.onProgress?.(
-      `Uploading photo ${i + 1} of ${input.photos.length}…`,
+      `Preparing photo ${i + 1} of ${input.photos.length}…`,
     );
-    const item = input.photos[i];
+    const jpeg = await normalizeMocImageFile(input.photos[i].file);
     const named = new File(
-      [item.file],
-      `photo-${String(i + 1).padStart(2, "0")}-${item.file.name}`,
-      { type: item.file.type },
+      [jpeg],
+      `photo-${String(i + 1).padStart(2, "0")}-${jpeg.name}`,
+      { type: "image/jpeg" },
+    );
+    input.onProgress?.(
+      `Uploading photo ${i + 1} of ${input.photos.length}…`,
     );
     photoUrls.push(await uploadOne(named, `${stamp}/photos`));
   }
@@ -37,13 +41,16 @@ export async function uploadMocAssets(input: {
   const instructionUrls: string[] = [];
   for (let i = 0; i < input.steps.length; i += 1) {
     input.onProgress?.(
-      `Uploading step ${i + 1} of ${input.steps.length}…`,
+      `Preparing step ${i + 1} of ${input.steps.length}…`,
     );
-    const item = input.steps[i];
+    const jpeg = await normalizeMocImageFile(input.steps[i].file);
     const named = new File(
-      [item.file],
-      `step-${String(i + 1).padStart(2, "0")}-${item.file.name}`,
-      { type: item.file.type },
+      [jpeg],
+      `step-${String(i + 1).padStart(2, "0")}-${jpeg.name}`,
+      { type: "image/jpeg" },
+    );
+    input.onProgress?.(
+      `Uploading step ${i + 1} of ${input.steps.length}…`,
     );
     instructionUrls.push(await uploadOne(named, `${stamp}/instructions`));
   }

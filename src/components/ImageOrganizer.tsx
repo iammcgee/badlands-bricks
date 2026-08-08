@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import type { MocMediaItem } from "@/lib/moc-builder";
-import { moveMediaItem } from "@/lib/moc-builder";
+import {
+  isImageFile,
+  moveMediaItem,
+  normalizeMocImageFile,
+} from "@/lib/moc-builder";
 
 export function ImageOrganizer({
   title,
@@ -18,17 +22,34 @@ export function ImageOrganizer({
   emptyLabel: string;
 }) {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
-  function onFilesSelected(fileList: FileList | null) {
+  async function onFilesSelected(fileList: FileList | null) {
     if (!fileList?.length) return;
-    const incoming = Array.from(fileList)
-      .filter((file) => file.type.startsWith("image/"))
-      .map((file) => ({
-        id: `${file.name}-${file.size}-${crypto.randomUUID()}`,
-        file,
-        previewUrl: URL.createObjectURL(file),
-      }));
-    onChange([...items, ...incoming]);
+    setBusy(true);
+    setError("");
+    try {
+      const incoming: MocMediaItem[] = [];
+      for (const file of Array.from(fileList)) {
+        if (!isImageFile(file)) continue;
+        const normalized = await normalizeMocImageFile(file);
+        incoming.push({
+          id: `${normalized.name}-${normalized.size}-${crypto.randomUUID()}`,
+          file: normalized,
+          previewUrl: URL.createObjectURL(normalized),
+        });
+      }
+      if (incoming.length === 0) {
+        setError("No usable photos found. Try JPEG/PNG, or HEIC from iPhone/iPad.");
+        return;
+      }
+      onChange([...items, ...incoming]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add photos");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function removeAt(index: number) {
@@ -47,20 +68,27 @@ export function ImageOrganizer({
           </h2>
           <p className="mt-1 text-sm text-white/60">{hint}</p>
         </div>
-        <label className="inline-block cursor-pointer border border-brand-orange px-4 py-2 text-xs font-bold tracking-[0.14em] text-brand-orange transition hover:bg-brand-orange hover:text-white">
-          ADD PHOTOS
+        <label
+          className={`inline-block cursor-pointer border border-brand-orange px-4 py-2 text-xs font-bold tracking-[0.14em] text-brand-orange transition hover:bg-brand-orange hover:text-white ${
+            busy ? "pointer-events-none opacity-50" : ""
+          }`}
+        >
+          {busy ? "CONVERTING…" : "ADD PHOTOS"}
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,.heic,.heif"
             multiple
+            disabled={busy}
             className="hidden"
             onChange={(event) => {
-              onFilesSelected(event.target.files);
+              void onFilesSelected(event.target.files);
               event.currentTarget.value = "";
             }}
           />
         </label>
       </div>
+
+      {error ? <p className="text-sm text-red-400">{error}</p> : null}
 
       {items.length === 0 ? (
         <div className="border border-dashed border-white/25 px-4 py-10 text-center text-sm text-white/50">

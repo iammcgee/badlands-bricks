@@ -40,13 +40,48 @@ export function moveMediaItem(
   return next;
 }
 
+export function isImageFile(file: File) {
+  const type = file.type.toLowerCase();
+  const name = file.name.toLowerCase();
+  return (
+    type.startsWith("image/") ||
+    name.endsWith(".heic") ||
+    name.endsWith(".heif") ||
+    name.endsWith(".jpg") ||
+    name.endsWith(".jpeg") ||
+    name.endsWith(".png") ||
+    name.endsWith(".webp") ||
+    name.endsWith(".gif")
+  );
+}
+
+export function isHeicLike(file: File) {
+  const type = file.type.toLowerCase();
+  const name = file.name.toLowerCase();
+  return (
+    type === "image/heic" ||
+    type === "image/heif" ||
+    name.endsWith(".heic") ||
+    name.endsWith(".heif")
+  );
+}
+
 /** Convert any browser-decodable image to JPEG bytes for PDF embedding. */
 export async function fileToJpegBytes(
   file: File,
   maxEdge = 1600,
   quality = 0.85,
 ): Promise<Uint8Array> {
-  const bitmap = await createImageBitmap(file);
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    throw new Error(
+      isHeicLike(file)
+        ? `Could not read HEIC photo "${file.name}". On this device, export as JPEG or use Safari/iPad Photos.`
+        : `Could not read photo "${file.name}". Try JPEG or PNG.`,
+    );
+  }
   const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
   const width = Math.max(1, Math.round(bitmap.width * scale));
   const height = Math.max(1, Math.round(bitmap.height * scale));
@@ -69,6 +104,21 @@ export async function fileToJpegBytes(
   );
   if (!blob) throw new Error("Could not encode image");
   return new Uint8Array(await blob.arrayBuffer());
+}
+
+/** Normalize phone photos (including HEIC) to JPEG before Blob upload. */
+export async function normalizeMocImageFile(
+  file: File,
+  maxEdge = 2000,
+  quality = 0.85,
+): Promise<File> {
+  if (file.type === "image/jpeg" && !isHeicLike(file)) {
+    // Still recompress very large JPEGs so uploads stay reliable.
+    if (file.size <= 3 * 1024 * 1024) return file;
+  }
+  const bytes = await fileToJpegBytes(file, maxEdge, quality);
+  const baseName = file.name.replace(/\.[^.]+$/, "") || "photo";
+  return new File([bytes], `${baseName}.jpg`, { type: "image/jpeg" });
 }
 
 export async function buildInstructionsPdf(options: {
