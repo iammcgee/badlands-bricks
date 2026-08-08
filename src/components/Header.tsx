@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AccountMenu } from "@/components/AccountMenu";
 import { useCart } from "@/components/CartProvider";
-import { OnlineCounter } from "@/components/OnlineCounter";
 import { LOGO_SRC, YOUTUBE_URL } from "@/lib/site";
 
 const nav = [
@@ -51,7 +50,6 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3 md:gap-4">
-          <OnlineCounter />
           <AccountMenu />
           <a
             href={YOUTUBE_URL}

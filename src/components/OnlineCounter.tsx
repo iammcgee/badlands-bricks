@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-export function OnlineCounter() {
+export function OnlineCounter({
+  size = "sm",
+}: {
+  size?: "sm" | "lg";
+}) {
   const [onlineCount, setOnlineCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -28,13 +32,25 @@ export function OnlineCounter() {
     };
   }, []);
 
+  const large = size === "lg";
+  const textClass = large
+    ? "text-sm tracking-[0.16em] text-white/80 md:text-base"
+    : "text-xs tracking-[0.12em] text-white/70";
+  const dotClass = large
+    ? "mr-2 inline-block h-2.5 w-2.5 rounded-full bg-green-400"
+    : "mr-1 inline-block h-1.5 w-1.5 rounded-full bg-green-400";
+
   if (onlineCount === null) {
-    return <span className="text-xs tracking-[0.12em] text-white/50">ONLINE…</span>;
+    return (
+      <span className={large ? "text-sm tracking-[0.16em] text-white/50 md:text-base" : "text-xs tracking-[0.12em] text-white/50"}>
+        ONLINE…
+      </span>
+    );
   }
 
   return (
-    <span className="text-xs tracking-[0.12em] text-white/70">
-      <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-green-400" />
+    <span className={textClass}>
+      <span className={dotClass} />
       {onlineCount} ONLINE
     </span>
   );
