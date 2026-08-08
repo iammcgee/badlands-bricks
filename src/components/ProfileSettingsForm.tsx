@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { UserAvatar } from "@/components/UserAvatar";
+import { compressImageForAvatar } from "@/lib/avatar-image";
 
 export function ProfileSettingsForm({
   initialName,
@@ -24,15 +25,24 @@ export function ProfileSettingsForm({
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  function onAvatarChange(file: File | null) {
-    setAvatarFile(file);
+  async function onAvatarChange(file: File | null) {
     setSaved(false);
+    setError("");
     if (!file) {
+      setAvatarFile(null);
       setPreview(initialImage);
       return;
     }
-    const url = URL.createObjectURL(file);
-    setPreview(url);
+
+    try {
+      const compressed = await compressImageForAvatar(file);
+      setAvatarFile(compressed);
+      setPreview(URL.createObjectURL(compressed));
+    } catch (err) {
+      setAvatarFile(null);
+      setPreview(initialImage);
+      setError(err instanceof Error ? err.message : "Could not read that image");
+    }
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -51,11 +61,17 @@ export function ProfileSettingsForm({
         method: "PATCH",
         body: form,
       });
-      const data = (await response.json()) as {
-        error?: string;
-        user?: { name: string; image: string | null };
-      };
-      if (!response.ok) throw new Error(data.error || "Update failed");
+      const raw = await response.text();
+      let data: { error?: string; user?: { name: string; image: string | null } } =
+        {};
+      try {
+        data = raw ? (JSON.parse(raw) as typeof data) : {};
+      } catch {
+        throw new Error(messageFromFailedBody(response.status, raw));
+      }
+      if (!response.ok) {
+        throw new Error(data.error || messageFromFailedBody(response.status, raw));
+      }
 
       await update({
         name: data.user?.name ?? name.trim(),
@@ -77,15 +93,22 @@ export function ProfileSettingsForm({
     <form onSubmit={onSubmit} className="mt-8 max-w-lg space-y-6">
       <div className="flex items-center gap-4">
         <UserAvatar name={name} image={preview} size={72} />
-        <label className="cursor-pointer border border-white/25 px-4 py-2 text-xs font-bold tracking-[0.14em] text-white transition hover:border-brand-orange hover:text-brand-orange">
-          UPLOAD PHOTO
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="hidden"
-            onChange={(event) => onAvatarChange(event.target.files?.[0] ?? null)}
-          />
-        </label>
+        <div className="space-y-2">
+          <label className="inline-block cursor-pointer border border-white/25 px-4 py-2 text-xs font-bold tracking-[0.14em] text-white transition hover:border-brand-orange hover:text-brand-orange">
+            UPLOAD PHOTO
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(event) =>
+                void onAvatarChange(event.target.files?.[0] ?? null)
+              }
+            />
+          </label>
+          <p className="text-xs text-white/45">
+            Photos are resized automatically. JPG, PNG, or WebP.
+          </p>
+        </div>
       </div>
 
       <label className="block space-y-2">
@@ -139,4 +162,12 @@ export function ProfileSettingsForm({
       </button>
     </form>
   );
+}
+
+function messageFromFailedBody(status: number, text: string) {
+  if (status === 413 || /request entity too large/i.test(text)) {
+    return "That photo is too large. Try a smaller image.";
+  }
+  if (text.trim()) return text.trim().slice(0, 160);
+  return `Update failed (${status})`;
 }
