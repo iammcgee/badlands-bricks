@@ -5,6 +5,10 @@ import { signOut, useSession } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import { UserAvatar } from "@/components/UserAvatar";
 
+function isStaffRole(role?: string | null) {
+  return role === "admin" || role === "reviewer";
+}
+
 export function AccountMenu() {
   const { data, status } = useSession();
   const [open, setOpen] = useState(false);
@@ -42,6 +46,8 @@ export function AccountMenu() {
     );
   }
 
+  const staff = isStaffRole(data.user.role);
+
   return (
     <div className="relative" ref={rootRef}>
       <button
@@ -66,6 +72,11 @@ export function AccountMenu() {
             </p>
             <p className="truncate text-xs text-white/50">{data.user.email}</p>
           </div>
+          {staff ? (
+            <MenuLink href="/admin" onClick={() => setOpen(false)}>
+              Admin portal
+            </MenuLink>
+          ) : null}
           <MenuLink href="/settings" onClick={() => setOpen(false)}>
             Edit profile
           </MenuLink>

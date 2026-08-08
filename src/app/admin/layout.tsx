@@ -50,7 +50,7 @@ export default async function AdminLayout({
                 type="submit"
                 className="text-xs tracking-[0.12em] text-white/50 hover:text-brand-orange"
               >
-                LOG OUT
+                BACK TO SITE
               </button>
             </form>
           </div>

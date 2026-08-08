@@ -124,7 +124,18 @@ async function main() {
     });
   }
 
-  console.log(`Seeded creator + ${products.length} products.`);
+  const ownerEmails = [
+    "wesleybarcus@icloud.com",
+    "canaanmcgee@gmail.com",
+  ];
+  const promoted = await prisma.user.updateMany({
+    where: { email: { in: ownerEmails } },
+    data: { role: "admin" },
+  });
+
+  console.log(
+    `Seeded creator + ${products.length} products. Promoted ${promoted.count} owner admin(s).`,
+  );
 }
 
 main()

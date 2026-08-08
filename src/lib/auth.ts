@@ -31,6 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             id: true,
             email: true,
             name: true,
+            role: true,
             passwordHash: true,
             avatarData: true,
             updatedAt: true,
@@ -48,6 +49,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
+          role: user.role,
           image: user.avatarData
             ? `/api/avatars/${user.id}?v=${user.updatedAt.getTime()}`
             : null,
@@ -62,6 +64,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.name = user.name;
         token.email = user.email;
         token.image = user.image ?? null;
+        token.role = user.role ?? "user";
       }
 
       if (trigger === "update" && session) {
@@ -70,6 +73,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         if ("image" in session) {
           token.image = session.image ?? null;
+        }
+        if (typeof session.role === "string") {
+          token.role = session.role;
+        }
+      }
+
+      // Keep staff role in sync after promotions (no re-login required).
+      if (token.sub) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.sub },
+          select: { role: true, name: true },
+        });
+        if (dbUser) {
+          token.role = dbUser.role;
+          token.name = dbUser.name;
         }
       }
 
@@ -81,6 +99,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.name = token.name ?? session.user.name;
         session.user.email = token.email ?? session.user.email;
         session.user.image = token.image ?? null;
+        session.user.role = token.role ?? "user";
       }
       return session;
     },

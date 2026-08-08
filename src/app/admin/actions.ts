@@ -8,7 +8,6 @@ import {
   getAdminPassword,
   requireAdminAccess,
 } from "@/lib/admin";
-import { signOut } from "@/lib/auth";
 import { sendNotificationEmail } from "@/lib/email";
 import { mocStatusLabel } from "@/lib/moc-review";
 import { prisma } from "@/lib/prisma";
@@ -30,7 +29,8 @@ export async function adminPasswordLoginAction(formData: FormData) {
 export async function adminLogoutAction() {
   const jar = await cookies();
   jar.delete(ADMIN_COOKIE);
-  await signOut({ redirectTo: "/admin" });
+  // Leave the portal, but keep the normal site login session.
+  redirect("/");
 }
 
 export async function reviewMocAction(formData: FormData) {
