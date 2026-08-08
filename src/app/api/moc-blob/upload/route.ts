@@ -22,9 +22,12 @@ export async function POST(request: Request): Promise<NextResponse> {
         return {
           allowedContentTypes: [
             "image/jpeg",
+            "image/jpg",
             "image/png",
             "image/webp",
             "image/gif",
+            "image/heic",
+            "image/heif",
             "application/pdf",
           ],
           addRandomSuffix: true,
