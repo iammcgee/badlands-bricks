@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SubmitMocForm } from "@/components/SubmitMocForm";
 import { getAdminAccess } from "@/lib/admin";
+import { hasBlobStorage } from "@/lib/moc-files";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Create MOC" };
@@ -9,6 +10,7 @@ export const metadata = { title: "Create MOC" };
 export default async function AdminCreateMocPage() {
   const access = await getAdminAccess();
   if (!access) redirect("/admin");
+  const useBlobUploads = hasBlobStorage();
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-10 md:px-8">
@@ -28,7 +30,7 @@ export default async function AdminCreateMocPage() {
           approved.
         </p>
       </div>
-      <SubmitMocForm mode="admin" />
+      <SubmitMocForm mode="admin" useBlobUploads={useBlobUploads} />
     </div>
   );
 }

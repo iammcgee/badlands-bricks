@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdminAccess } from "@/lib/admin";
 import { persistMocUploads } from "@/lib/moc-files";
 import { MOC_STATUSES } from "@/lib/moc-review";
+import { parseUrlList } from "@/lib/moc-submit";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -13,11 +14,59 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const form = await request.formData();
-    const mocName = String(form.get("mocName") || "").trim();
-    const theme = String(form.get("theme") || "").trim();
-    const notes = String(form.get("notes") || "").trim();
-    const statusRaw = String(form.get("status") || "approved").trim();
+    const contentType = request.headers.get("content-type") || "";
+    let mocName = "";
+    let theme = "";
+    let notes = "";
+    let statusRaw = "approved";
+    let photoPaths: string[] = [];
+    let instructionPaths: string[] = [];
+    let pdfPaths: string[] = [];
+
+    if (contentType.includes("application/json")) {
+      const body = (await request.json()) as {
+        mocName?: string;
+        theme?: string;
+        notes?: string;
+        status?: string;
+        photoUrls?: unknown;
+        instructionUrls?: unknown;
+        pdfUrl?: string | null;
+      };
+      mocName = String(body.mocName || "").trim();
+      theme = String(body.theme || "").trim();
+      notes = String(body.notes || "").trim();
+      statusRaw = String(body.status || "approved").trim();
+      photoPaths = parseUrlList(body.photoUrls);
+      instructionPaths = parseUrlList(body.instructionUrls);
+      const pdfUrl =
+        typeof body.pdfUrl === "string" && /^https?:\/\//i.test(body.pdfUrl)
+          ? body.pdfUrl
+          : null;
+      pdfPaths = pdfUrl ? [pdfUrl] : [];
+
+      if (photoPaths.length === 0 || instructionPaths.length === 0) {
+        return NextResponse.json(
+          { error: "Please upload MOC photos and instruction step images" },
+          { status: 400 },
+        );
+      }
+    } else {
+      const form = await request.formData();
+      mocName = String(form.get("mocName") || "").trim();
+      theme = String(form.get("theme") || "").trim();
+      notes = String(form.get("notes") || "").trim();
+      statusRaw = String(form.get("status") || "approved").trim();
+
+      const uploaded = await persistMocUploads(form);
+      if ("error" in uploaded) {
+        return NextResponse.json({ error: uploaded.error }, { status: 400 });
+      }
+      photoPaths = uploaded.photoPaths;
+      instructionPaths = uploaded.instructionPaths;
+      pdfPaths = uploaded.pdfPaths;
+    }
+
     const status = MOC_STATUSES.includes(
       statusRaw as (typeof MOC_STATUSES)[number],
     )
@@ -38,12 +87,6 @@ export async function POST(request: Request) {
       "info@badlandsbricks.com"
     ).toLowerCase();
 
-    const uploaded = await persistMocUploads(form);
-    if ("error" in uploaded) {
-      return NextResponse.json({ error: uploaded.error }, { status: 400 });
-    }
-
-    const { photoPaths, instructionPaths, pdfPaths } = uploaded;
     const now = new Date();
     const isReviewed = status !== "new";
 

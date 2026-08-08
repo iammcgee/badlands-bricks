@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { ImageOrganizer } from "@/components/ImageOrganizer";
+import { uploadMocAssets } from "@/lib/moc-blob-client";
 import {
   buildInstructionsPdf,
   MocMediaItem,
@@ -12,9 +13,14 @@ import {
 
 type SubmitMocFormProps = {
   mode?: "user" | "admin";
+  /** When true, files go to Vercel Blob (required for reliable production submits). */
+  useBlobUploads?: boolean;
 };
 
-export function SubmitMocForm({ mode = "user" }: SubmitMocFormProps) {
+export function SubmitMocForm({
+  mode = "user",
+  useBlobUploads = false,
+}: SubmitMocFormProps) {
   const { data: session, status: sessionStatus } = useSession();
   const isAdmin = mode === "admin";
   const [mocName, setMocName] = useState("");
@@ -104,48 +110,72 @@ export function SubmitMocForm({ mode = "user" }: SubmitMocFormProps) {
     }
 
     setStatus("loading");
-    setMessage("");
+    setMessage(useBlobUploads ? "Uploading files…" : "");
 
     try {
-      const data = new FormData();
-      data.set("mocName", mocName.trim());
-      data.set("theme", theme.trim());
-      if (isAdmin) data.set("status", adminStatus);
+      const endpoint = isAdmin ? "/api/admin/create-moc" : "/api/submit-moc";
+      let response: Response;
 
-      photos.forEach((item, index) => {
-        const named = new File(
-          [item.file],
-          `photo-${String(index + 1).padStart(2, "0")}-${item.file.name}`,
-          { type: item.file.type },
+      if (useBlobUploads) {
+        const assets = await uploadMocAssets({
+          photos,
+          steps,
+          pdfBlob,
+          mocName: mocName.trim(),
+          onProgress: setMessage,
+        });
+        setMessage("Saving submission…");
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mocName: mocName.trim(),
+            theme: theme.trim(),
+            status: isAdmin ? adminStatus : undefined,
+            photoUrls: assets.photoUrls,
+            instructionUrls: assets.instructionUrls,
+            pdfUrl: assets.pdfUrl,
+          }),
+        });
+      } else {
+        const data = new FormData();
+        data.set("mocName", mocName.trim());
+        data.set("theme", theme.trim());
+        if (isAdmin) data.set("status", adminStatus);
+
+        photos.forEach((item, index) => {
+          const named = new File(
+            [item.file],
+            `photo-${String(index + 1).padStart(2, "0")}-${item.file.name}`,
+            { type: item.file.type },
+          );
+          data.append("photos", named);
+        });
+
+        steps.forEach((item, index) => {
+          const named = new File(
+            [item.file],
+            `step-${String(index + 1).padStart(2, "0")}-${item.file.name}`,
+            { type: item.file.type },
+          );
+          data.append("instructions", named);
+        });
+
+        data.append(
+          "instructionPdf",
+          new File(
+            [pdfBlob],
+            `${mocName.trim().replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "moc"}-instructions.pdf`,
+            { type: "application/pdf" },
+          ),
         );
-        data.append("photos", named);
-      });
 
-      steps.forEach((item, index) => {
-        const named = new File(
-          [item.file],
-          `step-${String(index + 1).padStart(2, "0")}-${item.file.name}`,
-          { type: item.file.type },
-        );
-        data.append("instructions", named);
-      });
-
-      data.append(
-        "instructionPdf",
-        new File(
-          [pdfBlob],
-          `${mocName.trim().replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "moc"}-instructions.pdf`,
-          { type: "application/pdf" },
-        ),
-      );
-
-      const response = await fetch(
-        isAdmin ? "/api/admin/create-moc" : "/api/submit-moc",
-        {
+        response = await fetch(endpoint, {
           method: "POST",
           body: data,
-        },
-      );
+        });
+      }
+
       const json = (await response.json()) as { error?: string; id?: string };
       if (!response.ok) throw new Error(json.error || "Submit failed");
 

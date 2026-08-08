@@ -2,12 +2,29 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { reviewMocAction } from "@/app/admin/actions";
 import { getAdminAccess } from "@/lib/admin";
+import { isRemoteMocPath } from "@/lib/moc-files";
 import {
   mocStatusClass,
   mocStatusLabel,
   parseJsonStringArray,
 } from "@/lib/moc-review";
 import { prisma } from "@/lib/prisma";
+
+function fileHref(path: string) {
+  if (isRemoteMocPath(path)) return path;
+  return `/api/admin/uploads?path=${encodeURIComponent(path)}`;
+}
+
+function fileLabel(path: string) {
+  if (isRemoteMocPath(path)) {
+    try {
+      return new URL(path).pathname.split("/").pop() || path;
+    } catch {
+      return path;
+    }
+  }
+  return path.split("/").pop() || path;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -116,12 +133,12 @@ export default async function AdminMocDetailPage({
               {photos.map((path) => (
                 <li key={path}>
                   <a
-                    href={`/api/admin/uploads?path=${encodeURIComponent(path)}`}
+                    href={fileHref(path)}
                     className="text-brand-orange hover:underline"
                     target="_blank"
                     rel="noreferrer"
                   >
-                    {path.split("/").pop()}
+                    {fileLabel(path)}
                   </a>
                 </li>
               ))}
@@ -134,20 +151,20 @@ export default async function AdminMocDetailPage({
               {instructions.map((path) => (
                 <li key={path}>
                   <a
-                    href={`/api/admin/uploads?path=${encodeURIComponent(path)}`}
+                    href={fileHref(path)}
                     className="text-brand-orange hover:underline"
                     target="_blank"
                     rel="noreferrer"
                   >
-                    {path.split("/").pop()}
+                    {fileLabel(path)}
                   </a>
                 </li>
               ))}
             </ul>
             <p className="mt-2 text-xs text-white/40">
-              Note: file downloads only work if the upload is still on this
-              server disk (local/dev). On Vercel, use the builder email thread
-              for replacements until object storage is added.
+              Files open from Vercel Blob when{" "}
+              <code className="text-white/60">BLOB_READ_WRITE_TOKEN</code> is
+              configured; otherwise they only persist on local disk.
             </p>
           </div>
         </section>

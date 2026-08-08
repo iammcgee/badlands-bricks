@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { sendNotificationEmail } from "@/lib/email";
 import { persistMocUploads } from "@/lib/moc-files";
+import {
+  createUserMocSubmission,
+  parseUrlList,
+} from "@/lib/moc-submit";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -27,12 +30,60 @@ export async function POST(request: Request) {
       );
     }
 
-    const form = await request.formData();
-    const mocName = String(form.get("mocName") || "").trim();
-    const theme = String(form.get("theme") || "").trim();
-    const notes = String(form.get("notes") || "").trim();
     const builderName = user.name?.trim() || user.email.split("@")[0];
     const builderEmail = user.email.toLowerCase();
+    const contentType = request.headers.get("content-type") || "";
+
+    let mocName = "";
+    let theme = "";
+    let notes = "";
+    let photoPaths: string[] = [];
+    let instructionPaths: string[] = [];
+    let pdfPaths: string[] = [];
+    let instructionCount = 0;
+
+    if (contentType.includes("application/json")) {
+      const body = (await request.json()) as {
+        mocName?: string;
+        theme?: string;
+        notes?: string;
+        photoUrls?: unknown;
+        instructionUrls?: unknown;
+        pdfUrl?: string | null;
+      };
+      mocName = String(body.mocName || "").trim();
+      theme = String(body.theme || "").trim();
+      notes = String(body.notes || "").trim();
+      photoPaths = parseUrlList(body.photoUrls);
+      instructionPaths = parseUrlList(body.instructionUrls);
+      const pdfUrl =
+        typeof body.pdfUrl === "string" && /^https?:\/\//i.test(body.pdfUrl)
+          ? body.pdfUrl
+          : null;
+      pdfPaths = pdfUrl ? [pdfUrl] : [];
+      instructionCount = instructionPaths.length;
+
+      if (photoPaths.length === 0 || instructionPaths.length === 0) {
+        return NextResponse.json(
+          { error: "Please upload MOC photos and instruction step images" },
+          { status: 400 },
+        );
+      }
+    } else {
+      const form = await request.formData();
+      mocName = String(form.get("mocName") || "").trim();
+      theme = String(form.get("theme") || "").trim();
+      notes = String(form.get("notes") || "").trim();
+
+      const uploaded = await persistMocUploads(form);
+      if ("error" in uploaded) {
+        return NextResponse.json({ error: uploaded.error }, { status: 400 });
+      }
+      photoPaths = uploaded.photoPaths;
+      instructionPaths = uploaded.instructionPaths;
+      pdfPaths = uploaded.pdfPaths;
+      instructionCount = uploaded.instructionCount;
+    }
 
     if (!mocName || !theme) {
       return NextResponse.json(
@@ -41,52 +92,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const uploaded = await persistMocUploads(form);
-    if ("error" in uploaded) {
-      return NextResponse.json({ error: uploaded.error }, { status: 400 });
-    }
-
-    const { photoPaths, instructionPaths, pdfPaths, instructionCount } =
-      uploaded;
-
-    const submission = await prisma.mocSubmission.create({
-      data: {
-        mocName,
-        theme,
-        builderName,
-        builderEmail,
-        submitterUserId: user.id,
-        notes: notes || null,
-        photoPathsJson: JSON.stringify(photoPaths),
-        instructionPathsJson: JSON.stringify([
-          ...instructionPaths,
-          ...pdfPaths,
-        ]),
-        status: "new",
-      },
-    });
-
-    await sendNotificationEmail({
-      subject: `New MOC submission: ${mocName}`,
-      text: `Builder: ${builderName} <${builderEmail}>\nTheme: ${theme}\nNotes: ${notes || "(none)"}\nPhotos: ${photoPaths.length}\nInstruction steps: ${instructionCount}\nPDF: ${pdfPaths[0] || "(none)"}\nSubmission ID: ${submission.id}\nReview: /admin/mocs/${submission.id}`,
-    });
-
-    await sendNotificationEmail({
-      to: builderEmail,
-      subject: `We got your MOC: ${mocName}`,
-      text: [
-        `Hi ${builderName},`,
-        "",
-        `Thanks for submitting "${mocName}" to Badlands Bricks.`,
-        "Status: Pending review",
-        "",
-        "Track it anytime here:",
-        `${process.env.NEXT_PUBLIC_SITE_URL || "https://badlandsbricks.com"}/my-mocs`,
-        "",
-        "We'll update you when it's approved, needs changes, or denied.",
-        "",
-        "— Badlands Bricks",
-      ].join("\n"),
+    const submission = await createUserMocSubmission({
+      userId: user.id,
+      builderName,
+      builderEmail,
+      mocName,
+      theme,
+      notes,
+      photoPaths,
+      instructionPaths,
+      pdfPaths,
+      instructionCount,
     });
 
     return NextResponse.json({ ok: true, id: submission.id });
