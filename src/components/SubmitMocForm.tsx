@@ -35,6 +35,25 @@ export function SubmitMocForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-5" encType="multipart/form-data">
       <label className="block space-y-2">
+        <span className="text-sm text-white">Your Name</span>
+        <input
+          name="builderName"
+          required
+          className="w-full border border-white/25 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-brand-orange"
+        />
+      </label>
+
+      <label className="block space-y-2">
+        <span className="text-sm text-white">Your Email</span>
+        <input
+          name="builderEmail"
+          type="email"
+          required
+          className="w-full border border-white/25 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-brand-orange"
+        />
+      </label>
+
+      <label className="block space-y-2">
         <span className="text-sm text-white">MOC Name</span>
         <input
           name="mocName"

@@ -1,0 +1,228 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { reviewMocAction } from "@/app/admin/actions";
+import { getAdminAccess } from "@/lib/admin";
+import {
+  mocStatusClass,
+  mocStatusLabel,
+  parseJsonStringArray,
+} from "@/lib/moc-review";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const submission = await prisma.mocSubmission.findUnique({ where: { id } });
+  return { title: submission ? `Review ${submission.mocName}` : "MOC Review" };
+}
+
+export default async function AdminMocDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ saved?: string; emailed?: string; error?: string }>;
+}) {
+  const access = await getAdminAccess();
+  if (!access) redirect("/admin");
+
+  const { id } = await params;
+  const query = await searchParams;
+
+  const submission = await prisma.mocSubmission.findUnique({
+    where: { id },
+    include: {
+      reviewNotes: { orderBy: { createdAt: "desc" } },
+      reviewedBy: { select: { name: true, email: true } },
+    },
+  });
+  if (!submission) redirect("/admin/mocs");
+
+  const photos = parseJsonStringArray(submission.photoPathsJson);
+  const instructions = parseJsonStringArray(submission.instructionPathsJson);
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-8 px-4 py-10 md:px-8">
+      <div>
+        <Link href="/admin/mocs" className="text-xs text-white/50 hover:text-brand-orange">
+          ← BACK TO MOC REVIEWS
+        </Link>
+        <h1 className="mt-3 font-display text-4xl tracking-[0.08em] text-white">
+          {submission.mocName.toUpperCase()}
+        </h1>
+        <p className={`mt-2 text-sm uppercase ${mocStatusClass(submission.status)}`}>
+          {mocStatusLabel(submission.status)}
+        </p>
+      </div>
+
+      {query.saved && (
+        <p className="border border-brand-orange/40 bg-brand-orange/10 px-4 py-3 text-sm text-brand-orange">
+          Review saved
+          {query.emailed === "1"
+            ? " and email sent to the builder."
+            : query.emailed === "0"
+              ? ". Email was skipped (no RESEND_API_KEY or delivery issue)."
+              : "."}
+        </p>
+      )}
+      {query.error && (
+        <p className="border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-300">
+          Could not save review. Add notes and choose a decision.
+        </p>
+      )}
+
+      <div className="grid gap-8 lg:grid-cols-2">
+        <section className="space-y-4 border border-white/15 p-5 text-sm text-white/80">
+          <h2 className="font-display text-2xl text-white">Submission</h2>
+          <p>
+            <span className="text-white/50">Builder:</span>{" "}
+            {submission.builderName || "—"}
+          </p>
+          <p>
+            <span className="text-white/50">Email:</span>{" "}
+            {submission.builderEmail || "—"}
+          </p>
+          <p>
+            <span className="text-white/50">Theme:</span> {submission.theme}
+          </p>
+          <p>
+            <span className="text-white/50">Submitted:</span>{" "}
+            {submission.createdAt.toLocaleString()}
+          </p>
+          {submission.notes ? (
+            <div>
+              <p className="text-white/50">Builder notes</p>
+              <p className="mt-1 whitespace-pre-wrap">{submission.notes}</p>
+            </div>
+          ) : null}
+          {submission.reviewedBy ? (
+            <p className="text-white/50">
+              Last reviewed by {submission.reviewedBy.name}
+              {submission.reviewedAt
+                ? ` · ${submission.reviewedAt.toLocaleString()}`
+                : ""}
+            </p>
+          ) : null}
+
+          <div>
+            <p className="mb-2 text-white/50">Photo files</p>
+            <ul className="space-y-1 text-xs text-white/70">
+              {photos.length === 0 && <li>None stored</li>}
+              {photos.map((path) => (
+                <li key={path}>
+                  <a
+                    href={`/api/admin/uploads?path=${encodeURIComponent(path)}`}
+                    className="text-brand-orange hover:underline"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {path.split("/").pop()}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="mb-2 text-white/50">Instruction files</p>
+            <ul className="space-y-1 text-xs text-white/70">
+              {instructions.length === 0 && <li>None stored</li>}
+              {instructions.map((path) => (
+                <li key={path}>
+                  <a
+                    href={`/api/admin/uploads?path=${encodeURIComponent(path)}`}
+                    className="text-brand-orange hover:underline"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {path.split("/").pop()}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-white/40">
+              Note: file downloads only work if the upload is still on this
+              server disk (local/dev). On Vercel, use the builder email thread
+              for replacements until object storage is added.
+            </p>
+          </div>
+        </section>
+
+        <section className="space-y-4 border border-white/15 p-5">
+          <h2 className="font-display text-2xl text-white">Review decision</h2>
+          <form action={reviewMocAction} className="space-y-4">
+            <input type="hidden" name="id" value={submission.id} />
+            <label className="block space-y-2 text-sm">
+              <span className="text-white/70">Decision</span>
+              <select
+                name="decision"
+                defaultValue={submission.status === "new" ? "needs_changes" : submission.status}
+                className="w-full border border-white/20 bg-black px-3 py-2 text-white outline-none focus:border-brand-orange"
+              >
+                <option value="approved">Approve</option>
+                <option value="denied">Deny</option>
+                <option value="needs_changes">Needs changes</option>
+                <option value="note">Note only (keep status)</option>
+              </select>
+            </label>
+            <label className="block space-y-2 text-sm">
+              <span className="text-white/70">Notes to builder</span>
+              <textarea
+                name="body"
+                required
+                rows={7}
+                placeholder="Explain what looks great and what needs improvement..."
+                className="w-full border border-white/20 bg-black px-3 py-2 text-white outline-none focus:border-brand-orange"
+              />
+            </label>
+            <label className="flex items-center gap-2 text-sm text-white/70">
+              <input
+                type="checkbox"
+                name="sendEmail"
+                defaultChecked={Boolean(submission.builderEmail)}
+                disabled={!submission.builderEmail}
+              />
+              Email these notes to the builder
+              {!submission.builderEmail ? " (no email on file)" : ""}
+            </label>
+            <button
+              type="submit"
+              className="bg-brand-orange px-5 py-3 text-sm font-bold tracking-[0.14em] text-white"
+            >
+              SAVE REVIEW
+            </button>
+          </form>
+        </section>
+      </div>
+
+      <section>
+        <h2 className="font-display text-2xl text-white">Review history</h2>
+        <div className="mt-4 space-y-3">
+          {submission.reviewNotes.length === 0 && (
+            <p className="text-sm text-white/50">No review notes yet.</p>
+          )}
+          {submission.reviewNotes.map((note) => (
+            <div
+              key={note.id}
+              className="border border-white/15 px-4 py-3 text-sm text-white/80"
+            >
+              <div className="flex flex-wrap justify-between gap-2">
+                <span className="font-semibold text-white">{note.authorLabel}</span>
+                <span className="text-white/45">
+                  {note.createdAt.toLocaleString()}
+                  {note.decision ? ` · ${mocStatusLabel(note.decision)}` : ""}
+                  {note.emailed ? " · emailed" : ""}
+                </span>
+              </div>
+              <p className="mt-2 whitespace-pre-wrap">{note.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}

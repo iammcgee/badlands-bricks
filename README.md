@@ -11,7 +11,7 @@ MVP features:
 - Live “X online” presence counter
 - Submit Your MOCs (file uploads)
 - Contact form
-- Minimal password-protected `/admin` for orders, submissions, messages, and creator assignment
+- Admin portal at `/admin` with birds-eye overview, MOC approve/deny + notes, team roles, and under-the-hood ops
 
 ## Quick start
 

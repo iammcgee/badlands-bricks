@@ -8,17 +8,20 @@ datasource db {
 }
 
 model User {
-  id            String            @id @default(cuid())
-  email         String            @unique
-  passwordHash  String
-  name          String
-  avatarMime    String?
-  avatarData    Bytes?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  favorites     Favorite[]
-  follows       Follow[]
-  presence      PresenceSession[]
+  id                  String            @id @default(cuid())
+  email               String            @unique
+  passwordHash        String
+  name                String
+  role                String            @default("user")
+  avatarMime          String?
+  avatarData          Bytes?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  favorites           Favorite[]
+  follows             Follow[]
+  presence            PresenceSession[]
+  reviewedSubmissions MocSubmission[]   @relation("MocReviewer")
+  reviewNotes         MocReviewNote[]
 }
 
 model Creator {
@@ -113,15 +116,34 @@ model DownloadToken {
 }
 
 model MocSubmission {
-  id                   String   @id @default(cuid())
+  id                   String          @id @default(cuid())
   mocName              String
   theme                String
-  photoPathsJson       String   @default("[]")
-  instructionPathsJson String   @default("[]")
+  builderName          String          @default("")
+  builderEmail         String          @default("")
+  photoPathsJson       String          @default("[]")
+  instructionPathsJson String          @default("[]")
   notes                String?
-  status               String   @default("new")
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  status               String          @default("new")
+  reviewedAt           DateTime?
+  reviewedByUserId     String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  reviewedBy           User?           @relation("MocReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  reviewNotes          MocReviewNote[]
+}
+
+model MocReviewNote {
+  id           String        @id @default(cuid())
+  submissionId String
+  authorUserId String?
+  authorLabel  String
+  body         String
+  decision     String?
+  emailed      Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  submission   MocSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  author       User?         @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
 }
 
 model ContactMessage {

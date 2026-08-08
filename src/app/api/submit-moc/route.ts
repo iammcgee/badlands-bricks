@@ -29,11 +29,15 @@ export async function POST(request: Request) {
     const form = await request.formData();
     const mocName = String(form.get("mocName") || "").trim();
     const theme = String(form.get("theme") || "").trim();
+    const builderName = String(form.get("builderName") || "").trim();
+    const builderEmail = String(form.get("builderEmail") || "")
+      .trim()
+      .toLowerCase();
     const notes = String(form.get("notes") || "").trim();
 
-    if (!mocName || !theme) {
+    if (!mocName || !theme || !builderName || !builderEmail) {
       return NextResponse.json(
-        { error: "MOC name and theme are required" },
+        { error: "MOC name, theme, builder name, and email are required" },
         { status: 400 },
       );
     }
@@ -61,6 +65,8 @@ export async function POST(request: Request) {
       data: {
         mocName,
         theme,
+        builderName,
+        builderEmail,
         notes: notes || null,
         photoPathsJson: JSON.stringify(photoPaths),
         instructionPathsJson: JSON.stringify(instructionPaths),
@@ -70,7 +76,7 @@ export async function POST(request: Request) {
 
     await sendNotificationEmail({
       subject: `New MOC submission: ${mocName}`,
-      text: `Theme: ${theme}\nNotes: ${notes || "(none)"}\nSubmission ID: ${submission.id}`,
+      text: `Builder: ${builderName} <${builderEmail}>\nTheme: ${theme}\nNotes: ${notes || "(none)"}\nSubmission ID: ${submission.id}\nReview: /admin/mocs/${submission.id}`,
     });
 
     return NextResponse.json({ ok: true, id: submission.id });

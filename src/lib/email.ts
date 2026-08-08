@@ -3,12 +3,14 @@ import { Resend } from "resend";
 export async function sendNotificationEmail(options: {
   subject: string;
   text: string;
+  to?: string | string[];
 }) {
   const apiKey = process.env.RESEND_API_KEY;
-  const to = process.env.CONTACT_TO_EMAIL || "info@badlandsbricks.com";
+  const to =
+    options.to || process.env.CONTACT_TO_EMAIL || "info@badlandsbricks.com";
 
   if (!apiKey) {
-    console.info("[email skipped — no RESEND_API_KEY]", options.subject);
+    console.info("[email skipped — no RESEND_API_KEY]", options.subject, to);
     return { skipped: true as const };
   }
 
