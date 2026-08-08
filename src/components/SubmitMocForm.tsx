@@ -4,6 +4,11 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { ImageOrganizer } from "@/components/ImageOrganizer";
+import {
+  formatBytes,
+  isOverUploadLimit,
+  MOC_UPLOAD_LIMIT_BYTES,
+} from "@/lib/file-size";
 import { uploadMocAssets } from "@/lib/moc-blob-client";
 import {
   buildInstructionsPdf,
@@ -52,6 +57,27 @@ export function SubmitMocForm({
   }, []);
 
   const canBuildPdf = steps.length > 0 && mocName.trim().length > 0;
+  const photosBytes = useMemo(
+    () => photos.reduce((sum, item) => sum + item.file.size, 0),
+    [photos],
+  );
+  const stepsBytes = useMemo(
+    () => steps.reduce((sum, item) => sum + item.file.size, 0),
+    [steps],
+  );
+  const pdfBytes = pdfBlob?.size ?? 0;
+  const largestPhoto = useMemo(
+    () => photos.reduce((max, item) => Math.max(max, item.file.size), 0),
+    [photos],
+  );
+  const largestStep = useMemo(
+    () => steps.reduce((max, item) => Math.max(max, item.file.size), 0),
+    [steps],
+  );
+  const oversizeFile =
+    isOverUploadLimit(pdfBytes) ||
+    isOverUploadLimit(largestPhoto) ||
+    isOverUploadLimit(largestStep);
   const canSubmit = useMemo(
     () =>
       (isAdmin || Boolean(session?.user?.id)) &&
@@ -59,7 +85,8 @@ export function SubmitMocForm({
       theme.trim() &&
       photos.length > 0 &&
       steps.length > 0 &&
-      Boolean(pdfBlob),
+      Boolean(pdfBlob) &&
+      !oversizeFile,
     [
       isAdmin,
       session?.user?.id,
@@ -68,6 +95,7 @@ export function SubmitMocForm({
       photos.length,
       steps.length,
       pdfBlob,
+      oversizeFile,
     ],
   );
 
@@ -122,6 +150,13 @@ export function SubmitMocForm({
     }
     if (!pdfBlob) {
       setMessage("Build the instructions PDF before submitting.");
+      setStatus("error");
+      return;
+    }
+    if (oversizeFile) {
+      setMessage(
+        `A file is over the ${formatBytes(MOC_UPLOAD_LIMIT_BYTES)} upload limit. PDF is ${formatBytes(pdfBytes)}. Rebuild the PDF or remove large photos.`,
+      );
       setStatus("error");
       return;
     }
@@ -350,9 +385,58 @@ export function SubmitMocForm({
           ) : null}
         </div>
         {pdfBlob ? (
-          <p className="text-sm text-brand-orange">
-            PDF locked to your current step order. Reorder steps? Make the PDF
-            again before submit.
+          <div className="space-y-1 text-sm">
+            <p
+              className={
+                isOverUploadLimit(pdfBytes)
+                  ? "font-semibold text-red-400"
+                  : "text-brand-orange"
+              }
+            >
+              PDF size: {formatBytes(pdfBytes)}
+              {isOverUploadLimit(pdfBytes)
+                ? ` — over the ${formatBytes(MOC_UPLOAD_LIMIT_BYTES)} limit`
+                : ` / ${formatBytes(MOC_UPLOAD_LIMIT_BYTES)} limit`}
+            </p>
+            <p className="text-white/55">
+              PDF locked to your current step order. Reorder steps? Make the PDF
+              again before submit.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-white/45">
+            Build the PDF to see its exact file size before upload.
+          </p>
+        )}
+      </section>
+
+      <section className="border border-white/15 px-5 py-4 text-sm text-white/70">
+        <h2 className="font-display text-xl tracking-[0.06em] text-white">
+          FILE SIZES
+        </h2>
+        <ul className="mt-3 space-y-1">
+          <li>
+            Showcase photos: {photos.length} · {formatBytes(photosBytes)}
+            {largestPhoto > 0
+              ? ` (largest ${formatBytes(largestPhoto)})`
+              : ""}
+          </li>
+          <li>
+            Instruction steps: {steps.length} · {formatBytes(stepsBytes)}
+            {largestStep > 0 ? ` (largest ${formatBytes(largestStep)})` : ""}
+          </li>
+          <li>
+            Instructions PDF:{" "}
+            {pdfBlob ? formatBytes(pdfBytes) : "not built yet"}
+          </li>
+          <li className="text-white/45">
+            Per-file upload limit: {formatBytes(MOC_UPLOAD_LIMIT_BYTES)}
+          </li>
+        </ul>
+        {oversizeFile ? (
+          <p className="mt-3 text-red-400">
+            One or more files are too large to upload. Rebuild the PDF (it
+            auto-compresses) or remove the biggest photos.
           </p>
         ) : null}
       </section>

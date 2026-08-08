@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatBytes } from "@/lib/file-size";
 import type { MocMediaItem } from "@/lib/moc-builder";
 import {
   isImageFile,
@@ -90,6 +91,14 @@ export function ImageOrganizer({
 
       {error ? <p className="text-sm text-red-400">{error}</p> : null}
 
+      {items.length > 0 ? (
+        <p className="text-xs text-white/50">
+          {items.length} file{items.length === 1 ? "" : "s"} ·{" "}
+          {formatBytes(items.reduce((sum, item) => sum + item.file.size, 0))}{" "}
+          total
+        </p>
+      ) : null}
+
       {items.length === 0 ? (
         <div className="border border-dashed border-white/25 px-4 py-10 text-center text-sm text-white/50">
           {emptyLabel}
@@ -125,6 +134,7 @@ export function ImageOrganizer({
                 </span>
               </div>
               <p className="mt-2 truncate text-xs text-white/50">{item.file.name}</p>
+              <p className="text-xs text-white/40">{formatBytes(item.file.size)}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   type="button"

@@ -2,6 +2,7 @@ import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { getAdminAccess } from "@/lib/admin";
 import { auth } from "@/lib/auth";
+import { MOC_UPLOAD_LIMIT_BYTES } from "@/lib/file-size";
 
 export const runtime = "nodejs";
 
@@ -32,7 +33,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           ],
           addRandomSuffix: true,
           // Match roomy instruction PDFs (~30 steps). Images are compressed client-side first.
-          maximumSizeInBytes: 100 * 1024 * 1024,
+          maximumSizeInBytes: MOC_UPLOAD_LIMIT_BYTES,
           tokenPayload: JSON.stringify({
             userId: session?.user?.id ?? admin?.userId ?? null,
             admin: Boolean(admin),
