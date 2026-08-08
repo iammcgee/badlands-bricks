@@ -38,18 +38,20 @@ model Creator {
 }
 
 model Product {
-  id               String      @id @default(cuid())
-  slug             String      @unique
+  id               String         @id @default(cuid())
+  slug             String         @unique
   name             String
   priceCents       Int
   description      String
-  imagesJson       String      @default("[]")
+  imagesJson       String         @default("[]")
   downloadFilePath String?
-  isActive         Boolean     @default(true)
+  isActive         Boolean        @default(true)
   creatorId        String
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  creator          Creator     @relation(fields: [creatorId], references: [id])
+  mocSubmissionId  String?        @unique
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  creator          Creator        @relation(fields: [creatorId], references: [id])
+  mocSubmission    MocSubmission? @relation(fields: [mocSubmissionId], references: [id], onDelete: SetNull)
   orderItems       OrderItem[]
   favorites        Favorite[]
 }
@@ -134,6 +136,7 @@ model MocSubmission {
   submitter            User?           @relation("MocSubmitter", fields: [submitterUserId], references: [id], onDelete: SetNull)
   reviewedBy           User?           @relation("MocReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
   reviewNotes          MocReviewNote[]
+  product              Product?
 }
 
 model MocReviewNote {

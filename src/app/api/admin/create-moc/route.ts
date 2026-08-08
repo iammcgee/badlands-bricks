@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdminAccess } from "@/lib/admin";
 import { persistMocUploads } from "@/lib/moc-files";
 import { MOC_STATUSES } from "@/lib/moc-review";
+import { publishApprovedMocToBuild } from "@/lib/moc-publish";
 import { parseUrlList } from "@/lib/moc-submit";
 import { prisma } from "@/lib/prisma";
 
@@ -118,7 +119,19 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ ok: true, id: submission.id });
+    let productSlug: string | null = null;
+    if (status === "approved") {
+      const product = await publishApprovedMocToBuild(submission, {
+        priceCents: 0,
+      });
+      productSlug = product.slug;
+    }
+
+    return NextResponse.json({
+      ok: true,
+      id: submission.id,
+      productSlug,
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Create failed" }, { status: 500 });

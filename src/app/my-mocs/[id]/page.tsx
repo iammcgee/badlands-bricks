@@ -32,6 +32,7 @@ export default async function MyMocDetailPage({
     where: { id },
     include: {
       reviewNotes: { orderBy: { createdAt: "desc" } },
+      product: { select: { slug: true, isActive: true } },
     },
   });
 
@@ -54,6 +55,14 @@ export default async function MyMocDetailPage({
         <p className={`mt-2 text-sm font-bold uppercase tracking-[0.12em] ${mocStatusClass(submission.status)}`}>
           {mocStatusLabel(submission.status)}
         </p>
+        {submission.product?.isActive ? (
+          <Link
+            href={`/build/${submission.product.slug}`}
+            className="mt-4 inline-block bg-brand-orange px-5 py-3 text-xs font-bold tracking-[0.14em] text-white"
+          >
+            VIEW IN BUILD
+          </Link>
+        ) : null}
       </div>
 
       <section className="space-y-2 border border-white/15 p-5 text-sm text-white/75">

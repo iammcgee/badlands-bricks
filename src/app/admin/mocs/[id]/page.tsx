@@ -43,7 +43,13 @@ export default async function AdminMocDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string; emailed?: string; error?: string }>;
+  searchParams: Promise<{
+    saved?: string;
+    emailed?: string;
+    error?: string;
+    published?: string;
+    slug?: string;
+  }>;
 }) {
   const access = await getAdminAccess();
   if (!access) redirect("/admin");
@@ -56,12 +62,17 @@ export default async function AdminMocDetailPage({
     include: {
       reviewNotes: { orderBy: { createdAt: "desc" } },
       reviewedBy: { select: { name: true, email: true } },
+      product: { select: { id: true, slug: true, isActive: true, priceCents: true } },
     },
   });
   if (!submission) redirect("/admin/mocs");
 
   const photos = parseJsonStringArray(submission.photoPathsJson);
   const instructions = parseJsonStringArray(submission.instructionPathsJson);
+  const existingPrice =
+    submission.product?.priceCents != null
+      ? (submission.product.priceCents / 100).toFixed(2)
+      : "0";
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-10 md:px-8">
@@ -80,18 +91,48 @@ export default async function AdminMocDetailPage({
       {query.saved && (
         <p className="border border-brand-orange/40 bg-brand-orange/10 px-4 py-3 text-sm text-brand-orange">
           Review saved
+          {query.published === "1" && query.slug
+            ? " and published to Build."
+            : ""}
           {query.emailed === "1"
-            ? " and email sent to the builder."
+            ? " Email sent to the builder."
             : query.emailed === "0"
-              ? ". Email was skipped (no RESEND_API_KEY or delivery issue)."
-              : "."}
+              ? " Email was skipped (no RESEND_API_KEY or delivery issue)."
+              : ""}
+          {query.published === "1" && query.slug ? (
+            <>
+              {" "}
+              <Link
+                href={`/build/${query.slug}`}
+                className="underline hover:text-white"
+              >
+                View in Build
+              </Link>
+            </>
+          ) : null}
         </p>
       )}
-      {query.error && (
+      {query.error === "publish" ? (
+        <p className="border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-300">
+          Review status saved path failed while publishing to Build. Try again.
+        </p>
+      ) : null}
+      {query.error && query.error !== "publish" ? (
         <p className="border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-300">
           Could not save review. Add notes and choose a decision.
         </p>
-      )}
+      ) : null}
+      {submission.product?.isActive ? (
+        <p className="border border-white/15 px-4 py-3 text-sm text-white/70">
+          Live in Build as{" "}
+          <Link
+            href={`/build/${submission.product.slug}`}
+            className="text-brand-orange hover:underline"
+          >
+            /build/{submission.product.slug}
+          </Link>
+        </p>
+      ) : null}
 
       <div className="grid gap-8 lg:grid-cols-2">
         <section className="space-y-4 border border-white/15 p-5 text-sm text-white/80">
@@ -177,7 +218,7 @@ export default async function AdminMocDetailPage({
               <span className="text-white/70">Decision</span>
               <select
                 name="decision"
-                defaultValue={submission.status === "new" ? "needs_changes" : submission.status}
+                defaultValue={submission.status === "new" ? "approved" : submission.status}
                 className="w-full border border-white/20 bg-black px-3 py-2 text-white outline-none focus:border-brand-orange"
               >
                 <option value="approved">Approve</option>
@@ -185,6 +226,23 @@ export default async function AdminMocDetailPage({
                 <option value="needs_changes">Needs changes</option>
                 <option value="note">Note only (keep status)</option>
               </select>
+            </label>
+            <label className="block space-y-2 text-sm">
+              <span className="text-white/70">
+                Shop price if approved (USD)
+              </span>
+              <input
+                type="number"
+                name="priceUsd"
+                min="0"
+                step="0.01"
+                defaultValue={existingPrice}
+                className="w-full border border-white/20 bg-black px-3 py-2 text-white outline-none focus:border-brand-orange"
+              />
+              <span className="block text-xs text-white/45">
+                Approving publishes this MOC to Build with likes, cart, and the
+                builder as creator. Use 0 for free.
+              </span>
             </label>
             <label className="block space-y-2 text-sm">
               <span className="text-white/70">Notes to builder</span>

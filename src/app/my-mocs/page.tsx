@@ -24,6 +24,7 @@ export default async function MyMocsPage() {
         orderBy: { createdAt: "desc" },
         take: 1,
       },
+      product: { select: { slug: true, isActive: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -91,7 +92,11 @@ export default async function MyMocsPage() {
                 )}
                 <p className="mt-2 text-xs text-white/40">
                   {submission._count.reviewNotes} review note
-                  {submission._count.reviewNotes === 1 ? "" : "s"} · View details →
+                  {submission._count.reviewNotes === 1 ? "" : "s"}
+                  {submission.product?.isActive
+                    ? " · Live in Build"
+                    : ""}{" "}
+                  · View details →
                 </p>
               </Link>
             );
