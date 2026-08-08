@@ -19,7 +19,6 @@ export function SubmitMocForm({ mode = "user" }: SubmitMocFormProps) {
   const isAdmin = mode === "admin";
   const [mocName, setMocName] = useState("");
   const [theme, setTheme] = useState("");
-  const [notes, setNotes] = useState("");
   const [adminStatus, setAdminStatus] = useState("approved");
   const [photos, setPhotos] = useState<MocMediaItem[]>([]);
   const [steps, setSteps] = useState<MocMediaItem[]>([]);
@@ -111,7 +110,6 @@ export function SubmitMocForm({ mode = "user" }: SubmitMocFormProps) {
       const data = new FormData();
       data.set("mocName", mocName.trim());
       data.set("theme", theme.trim());
-      if (notes.trim()) data.set("notes", notes.trim());
       if (isAdmin) data.set("status", adminStatus);
 
       photos.forEach((item, index) => {
@@ -165,7 +163,6 @@ export function SubmitMocForm({ mode = "user" }: SubmitMocFormProps) {
       setPdfBlob(null);
       if (pdfUrl) URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
-      setNotes("");
       setMocName("");
       setTheme("");
     } catch (error) {
@@ -239,7 +236,7 @@ export function SubmitMocForm({ mode = "user" }: SubmitMocFormProps) {
           />
         </label>
         {isAdmin ? (
-          <label className="block space-y-2">
+          <label className="block space-y-2 md:col-span-2">
             <span className="text-sm text-white">Status</span>
             <select
               value={adminStatus}
@@ -252,17 +249,6 @@ export function SubmitMocForm({ mode = "user" }: SubmitMocFormProps) {
             </select>
           </label>
         ) : null}
-        <label
-          className={`block space-y-2 ${isAdmin ? "" : "md:col-span-2"}`}
-        >
-          <span className="text-sm text-white">Notes (optional)</span>
-          <textarea
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            rows={3}
-            className="w-full border border-white/25 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-brand-orange"
-          />
-        </label>
       </section>
 
       <ImageOrganizer
