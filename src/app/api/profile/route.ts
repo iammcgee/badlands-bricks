@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
-const MAX_AVATAR_BYTES = 1_500_000;
+const MAX_AVATAR_BYTES = 900_000;
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const profileSchema = z.object({
