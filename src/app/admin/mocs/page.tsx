@@ -37,14 +37,22 @@ export default async function AdminMocsPage({
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-10 md:px-8">
-      <div>
-        <h1 className="font-display text-4xl tracking-[0.08em] text-white">
-          MOC REVIEWS
-        </h1>
-        <p className="mt-2 text-white/60">
-          Approve, deny, or send improvement notes. Builders track status on My
-          MOCs; email is optional when you save a review.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-display text-4xl tracking-[0.08em] text-white">
+            MOC REVIEWS
+          </h1>
+          <p className="mt-2 text-white/60">
+            Approve, deny, or send improvement notes. Builders track status on
+            My MOCs; email is optional when you save a review.
+          </p>
+        </div>
+        <Link
+          href="/admin/mocs/new"
+          className="inline-block bg-brand-orange px-5 py-3 text-center text-xs font-bold tracking-[0.14em] text-white"
+        >
+          CREATE MOC
+        </Link>
       </div>
 
       <div className="flex flex-wrap gap-2">
