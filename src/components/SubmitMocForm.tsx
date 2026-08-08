@@ -76,11 +76,11 @@ export function SubmitMocForm({
     setBusyPdf(true);
     try {
       // Start roomy, then shrink automatically if the PDF would fail Blob upload.
-      const presets = [
+      const presets: Array<{ maxEdge: number; quality: number }> = [
         { maxEdge: 1200, quality: 0.72 },
         { maxEdge: 1000, quality: 0.65 },
         { maxEdge: 850, quality: 0.58 },
-      ] as const;
+      ];
       const maxPdfBytes = 95 * 1024 * 1024;
       let blob: Blob | null = null;
       let used = presets[0];
