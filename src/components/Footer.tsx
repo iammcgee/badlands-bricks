@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { OnlineCounter } from "@/components/OnlineCounter";
 import { LOGO_SRC, YOUTUBE_URL } from "@/lib/site";
 
 export function Footer() {
@@ -37,6 +38,7 @@ export function Footer() {
             CONTACT
           </Link>
         </div>
+        <OnlineCounter size="lg" />
         <p className="text-center text-xs text-white/40">
           © {new Date().getFullYear()} Badlands Bricks. LEGO® is a trademark of
           the LEGO Group, which does not sponsor, authorize, or endorse this
