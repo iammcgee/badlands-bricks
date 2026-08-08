@@ -2,9 +2,30 @@
 
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
+import { useEffect, useRef, useState } from "react";
+import { UserAvatar } from "@/components/UserAvatar";
 
 export function AccountMenu() {
   const { data, status } = useSession();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onPointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
 
   if (status === "loading") {
     return <span className="text-xs tracking-[0.12em] text-white/50">…</span>;
@@ -22,23 +43,69 @@ export function AccountMenu() {
   }
 
   return (
-    <div className="flex items-center gap-3 text-xs tracking-[0.12em]">
-      <Link href="/favorites" className="text-white hover:text-brand-orange">
-        FAVORITES
-      </Link>
-      <Link
-        href="/following"
-        className="hidden text-white hover:text-brand-orange sm:inline"
-      >
-        FOLLOWING
-      </Link>
+    <div className="relative" ref={rootRef}>
       <button
         type="button"
-        onClick={() => signOut({ callbackUrl: "/" })}
-        className="text-white/70 hover:text-brand-orange"
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Account menu"
+        className="rounded-full ring-1 ring-white/25 transition hover:ring-brand-orange"
       >
-        SIGN OUT
+        <UserAvatar name={data.user.name} image={data.user.image} size={34} />
       </button>
+
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 z-50 mt-3 w-56 border border-white/15 bg-black py-2 shadow-xl"
+        >
+          <div className="border-b border-white/10 px-4 py-3">
+            <p className="truncate text-sm font-semibold text-white">
+              {data.user.name || "Builder"}
+            </p>
+            <p className="truncate text-xs text-white/50">{data.user.email}</p>
+          </div>
+          <MenuLink href="/settings" onClick={() => setOpen(false)}>
+            Edit profile
+          </MenuLink>
+          <MenuLink href="/favorites" onClick={() => setOpen(false)}>
+            Favorites
+          </MenuLink>
+          <MenuLink href="/following" onClick={() => setOpen(false)}>
+            Following
+          </MenuLink>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="block w-full px-4 py-2.5 text-left text-xs tracking-[0.12em] text-white/70 transition hover:bg-white/5 hover:text-brand-orange"
+          >
+            Sign out
+          </button>
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+function MenuLink({
+  href,
+  onClick,
+  children,
+}: {
+  href: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      role="menuitem"
+      onClick={onClick}
+      className="block px-4 py-2.5 text-xs tracking-[0.12em] text-white transition hover:bg-white/5 hover:text-brand-orange"
+    >
+      {children}
+    </Link>
   );
 }

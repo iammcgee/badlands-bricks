@@ -12,6 +12,8 @@ model User {
   email         String            @unique
   passwordHash  String
   name          String
+  avatarMime    String?
+  avatarData    Bytes?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   favorites     Favorite[]
