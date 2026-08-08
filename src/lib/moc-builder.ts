@@ -118,7 +118,9 @@ export async function normalizeMocImageFile(
   }
   const bytes = await fileToJpegBytes(file, maxEdge, quality);
   const baseName = file.name.replace(/\.[^.]+$/, "") || "photo";
-  return new File([bytes], `${baseName}.jpg`, { type: "image/jpeg" });
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return new File([copy], `${baseName}.jpg`, { type: "image/jpeg" });
 }
 
 export async function buildInstructionsPdf(options: {
