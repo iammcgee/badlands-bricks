@@ -11,6 +11,10 @@ import {
 } from "@/lib/admin";
 import { sendNotificationEmail } from "@/lib/email";
 import { mocStatusLabel } from "@/lib/moc-review";
+import {
+  publishApprovedMocToBuild,
+  unpublishMocFromBuild,
+} from "@/lib/moc-publish";
 import { prisma } from "@/lib/prisma";
 
 export async function adminPasswordLoginAction(formData: FormData) {
@@ -46,6 +50,12 @@ export async function reviewMocAction(formData: FormData) {
   const decision = String(formData.get("decision") || "");
   const body = String(formData.get("body") || "").trim();
   const sendEmail = formData.get("sendEmail") === "on";
+  const priceRaw = String(formData.get("priceUsd") || "0").trim();
+  const priceUsd = Number.parseFloat(priceRaw);
+  const priceCents =
+    Number.isFinite(priceUsd) && priceUsd >= 0
+      ? Math.round(priceUsd * 100)
+      : 0;
 
   if (!id || !body) {
     redirect(`/admin/mocs/${id || ""}?error=missing`);
@@ -79,10 +89,30 @@ export async function reviewMocAction(formData: FormData) {
     },
   });
 
+  let shopSlug: string | null = null;
+  let publishFailed = false;
+  try {
+    if (nextStatus === "approved") {
+      const product = await publishApprovedMocToBuild(submission, {
+        priceCents,
+      });
+      shopSlug = product.slug;
+    } else if (nextStatus === "denied" || nextStatus === "needs_changes") {
+      await unpublishMocFromBuild(id);
+    }
+  } catch (error) {
+    console.error("Failed to sync MOC to Build shop", error);
+    publishFailed = true;
+  }
+
   let emailed = false;
   if (sendEmail && submission.builderEmail) {
     const site =
       process.env.NEXT_PUBLIC_SITE_URL || "https://badlandsbricks.com";
+    const shopLine =
+      nextStatus === "approved" && shopSlug
+        ? `It's live in Build: ${site}/build/${shopSlug}`
+        : "";
     const result = await sendNotificationEmail({
       to: submission.builderEmail,
       subject: `Badlands Bricks MOC update: ${submission.mocName}`,
@@ -91,6 +121,7 @@ export async function reviewMocAction(formData: FormData) {
         "",
         `Your MOC "${submission.mocName}" was reviewed.`,
         `Status: ${mocStatusLabel(nextStatus)}`,
+        shopLine,
         "",
         "Notes from the Badlands Bricks team:",
         body,
@@ -100,7 +131,9 @@ export async function reviewMocAction(formData: FormData) {
         "",
         "Thanks for building with us!",
         "— Badlands Bricks",
-      ].join("\n"),
+      ]
+        .filter(Boolean)
+        .join("\n"),
     });
     emailed = !result.skipped;
     if (emailed) {
@@ -116,9 +149,17 @@ export async function reviewMocAction(formData: FormData) {
   revalidatePath(`/admin/mocs/${id}`);
   revalidatePath("/my-mocs");
   revalidatePath(`/my-mocs/${id}`);
-  redirect(
-    `/admin/mocs/${id}?saved=1${sendEmail ? (emailed ? "&emailed=1" : "&emailed=0") : ""}`,
-  );
+  revalidatePath("/build");
+  revalidatePath("/");
+  if (shopSlug) revalidatePath(`/build/${shopSlug}`);
+  const params = new URLSearchParams({ saved: "1" });
+  if (shopSlug) {
+    params.set("published", "1");
+    params.set("slug", shopSlug);
+  }
+  if (publishFailed) params.set("error", "publish");
+  if (sendEmail) params.set("emailed", emailed ? "1" : "0");
+  redirect(`/admin/mocs/${id}?${params.toString()}`);
 }
 
 export async function setStaffRoleAction(formData: FormData) {

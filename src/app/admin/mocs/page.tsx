@@ -43,9 +43,8 @@ export default async function AdminMocsPage({
             MOC REVIEWS
           </h1>
           <p className="mt-2 text-white/60">
-            Every successful user submit lands here as Pending. There is no
-            separate notification inbox — this list is the queue. Email alerts
-            need Resend configured.
+            Approve a MOC to publish it into Build (photos, creator, likes,
+            cart). This list is the review queue.
           </p>
         </div>
         <Link
