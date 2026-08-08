@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { adminPasswordLoginAction } from "@/app/admin/actions";
 import { getAdminAccess } from "@/lib/admin";
+import { auth } from "@/lib/auth";
 import { mocStatusClass, mocStatusLabel } from "@/lib/moc-review";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/products";
@@ -15,22 +16,32 @@ export default async function AdminOverviewPage({
 }) {
   const { error } = await searchParams;
   const access = await getAdminAccess();
+  const session = await auth();
 
   if (!access) {
     return (
       <div className="mx-auto max-w-md px-4 py-16">
         <h1 className="font-display text-4xl text-white">ADMIN PORTAL</h1>
         <p className="mt-3 text-sm text-white/60">
-          Sign in with the owner password, or log into a staff account first
-          then return here.
+          Staff: log into your Badlands account, then open Admin portal from
+          your avatar menu. Owner emergency access still uses the password
+          below.
         </p>
+        {session?.user ? (
+          <p className="mt-4 text-sm text-yellow-300">
+            You&apos;re logged in as {session.user.email}, but this account is
+            not an admin/reviewer yet.
+          </p>
+        ) : (
+          <p className="mt-4 text-sm text-white/50">
+            <Link href="/login?next=/admin" className="text-brand-orange">
+              Log in
+            </Link>{" "}
+            with your staff account first.
+          </p>
+        )}
         {error === "1" && (
           <p className="mt-4 text-sm text-red-400">Incorrect password.</p>
-        )}
-        {error === "nostaff" && (
-          <p className="mt-4 text-sm text-red-400">
-            Your account is not a reviewer/admin yet.
-          </p>
         )}
         <form action={adminPasswordLoginAction} className="mt-8 space-y-4">
           <input
@@ -46,13 +57,6 @@ export default async function AdminOverviewPage({
             ENTER PORTAL
           </button>
         </form>
-        <p className="mt-6 text-sm text-white/50">
-          Staff accounts:{" "}
-          <Link href="/login?next=/admin" className="text-brand-orange">
-            log in
-          </Link>{" "}
-          then open /admin again.
-        </p>
       </div>
     );
   }
