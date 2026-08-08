@@ -84,7 +84,11 @@ Recommended host: **Vercel**.
    - Apex / `www` → Vercel (A / CNAME records Vercel provides)
 5. Remove password protection / cancel Squarespace Commerce once the new site is live.
 
-For production file uploads and PDFs, move `uploads/` and `product-files/` to object storage (S3, Cloudflare R2, or Vercel Blob) before heavy traffic.
+**MOC uploads on Vercel:** create a Blob store in the Vercel project and set
+`BLOB_READ_WRITE_TOKEN` (Storage → Blob). Without it, large submits can fail
+before a row appears in `/admin/mocs`, because serverless disks are not durable
+and request bodies are capped around 4.5 MB. With Blob configured, the browser
+uploads files directly and the admin portal receives the submission.
 
 ## Scripts
 

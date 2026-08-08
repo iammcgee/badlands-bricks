@@ -3,6 +3,7 @@ import { readFile } from "fs/promises";
 import { normalize, resolve } from "path";
 import { NextResponse } from "next/server";
 import { getAdminAccess } from "@/lib/admin";
+import { isRemoteMocPath } from "@/lib/moc-files";
 
 export const runtime = "nodejs";
 
@@ -18,14 +19,31 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid path" }, { status: 400 });
   }
 
-  const uploadsRoot = resolve(process.cwd(), "uploads");
-  const absolute = resolve(process.cwd(), normalize(relative));
-  if (!absolute.startsWith(uploadsRoot + "/") && absolute !== uploadsRoot) {
+  // Blob / remote URLs are stored directly on the submission.
+  if (isRemoteMocPath(relative)) {
+    return NextResponse.redirect(relative);
+  }
+
+  const uploadsRoots = [
+    resolve(process.cwd(), "uploads"),
+    resolve("/tmp", "badlands-uploads"),
+  ];
+  const absolute = relative.startsWith("/")
+    ? resolve(normalize(relative))
+    : resolve(process.cwd(), normalize(relative));
+
+  const allowed = uploadsRoots.some(
+    (root) => absolute === root || absolute.startsWith(root + "/"),
+  );
+  if (!allowed) {
     return NextResponse.json({ error: "Forbidden path" }, { status: 403 });
   }
   if (!existsSync(absolute) || !statSync(absolute).isFile()) {
     return NextResponse.json(
-      { error: "File not found on this server" },
+      {
+        error:
+          "File not found on this server. On Vercel, connect Blob storage so uploads persist.",
+      },
       { status: 404 },
     );
   }

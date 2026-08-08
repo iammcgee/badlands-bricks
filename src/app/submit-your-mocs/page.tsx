@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SubmitMocForm } from "@/components/SubmitMocForm";
 import { auth } from "@/lib/auth";
+import { hasBlobStorage } from "@/lib/moc-files";
 
 export const metadata = { title: "SUBMIT YOUR MOCS" };
 
@@ -10,6 +11,7 @@ export default async function SubmitMocsPage() {
   if (!session?.user?.id) {
     redirect("/login?next=/submit-your-mocs");
   }
+  const useBlobUploads = hasBlobStorage();
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-12 md:px-8">
@@ -34,8 +36,15 @@ export default async function SubmitMocsPage() {
           .
         </p>
       </div>
+      {!useBlobUploads && process.env.VERCEL ? (
+        <p className="mt-6 border border-yellow-300/40 bg-yellow-300/10 px-4 py-3 text-sm text-yellow-100">
+          File storage is not fully configured on this server yet. Submits with
+          lots of photos may fail before they reach the admin queue. Ask an
+          admin to connect Vercel Blob (`BLOB_READ_WRITE_TOKEN`).
+        </p>
+      ) : null}
       <div className="mt-10">
-        <SubmitMocForm mode="user" />
+        <SubmitMocForm mode="user" useBlobUploads={useBlobUploads} />
       </div>
     </div>
   );

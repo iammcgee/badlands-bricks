@@ -1,6 +1,19 @@
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { randomBytes } from "crypto";
+import { put } from "@vercel/blob";
+
+export function hasBlobStorage() {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
+function uploadsRoot() {
+  // Vercel's app filesystem is read-only; only /tmp is writable.
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return join("/tmp", "badlands-uploads");
+  }
+  return join(process.cwd(), "uploads");
+}
 
 export async function saveMocFiles(files: File[], folder: string) {
   const paths: string[] = [];
@@ -13,12 +26,28 @@ export async function saveMocFiles(files: File[], folder: string) {
     const absolute = join(folder, filename);
     const bytes = Buffer.from(await file.arrayBuffer());
     await writeFile(absolute, bytes);
-    paths.push(
-      absolute.replace(process.cwd() + "\\", "").replace(process.cwd() + "/", ""),
-    );
+    paths.push(absolute);
   }
 
   return paths;
+}
+
+export async function saveMocFilesToBlob(
+  files: File[],
+  prefix: string,
+): Promise<string[]> {
+  const urls: string[] = [];
+  for (const file of files) {
+    if (!file || file.size === 0) continue;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const pathname = `moc-submissions/${prefix}/${Date.now()}-${randomBytes(4).toString("hex")}-${safeName}`;
+    const blob = await put(pathname, file, {
+      access: "public",
+      addRandomSuffix: false,
+    });
+    urls.push(blob.url);
+  }
+  return urls;
 }
 
 export function collectMocUploadFiles(form: FormData) {
@@ -43,12 +72,26 @@ export async function persistMocUploads(form: FormData) {
     };
   }
 
-  const base = join(
-    process.cwd(),
-    "uploads",
-    "moc-submissions",
-    Date.now().toString(),
-  );
+  const stamp = `${Date.now()}-${randomBytes(3).toString("hex")}`;
+
+  if (hasBlobStorage()) {
+    const photoPaths = await saveMocFilesToBlob(photos, `${stamp}/photos`);
+    const instructionPaths = await saveMocFilesToBlob(
+      instructions,
+      `${stamp}/instructions`,
+    );
+    const pdfPaths = pdfFile
+      ? await saveMocFilesToBlob([pdfFile], `${stamp}/pdf`)
+      : [];
+    return {
+      photoPaths,
+      instructionPaths,
+      pdfPaths,
+      instructionCount: instructions.length,
+    };
+  }
+
+  const base = join(uploadsRoot(), "moc-submissions", stamp);
   const photoPaths = await saveMocFiles(photos, join(base, "photos"));
   const instructionPaths = await saveMocFiles(
     instructions,
@@ -64,4 +107,8 @@ export async function persistMocUploads(form: FormData) {
     pdfPaths,
     instructionCount: instructions.length,
   };
+}
+
+export function isRemoteMocPath(path: string) {
+  return /^https?:\/\//i.test(path);
 }
