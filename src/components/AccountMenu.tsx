@@ -77,6 +77,9 @@ export function AccountMenu() {
               Admin portal
             </MenuLink>
           ) : null}
+          <MenuLink href="/my-mocs" onClick={() => setOpen(false)}>
+            My MOCs
+          </MenuLink>
           <MenuLink href="/settings" onClick={() => setOpen(false)}>
             Edit profile
           </MenuLink>

@@ -20,6 +20,7 @@ model User {
   favorites           Favorite[]
   follows             Follow[]
   presence            PresenceSession[]
+  submissions         MocSubmission[]   @relation("MocSubmitter")
   reviewedSubmissions MocSubmission[]   @relation("MocReviewer")
   reviewNotes         MocReviewNote[]
 }
@@ -121,6 +122,7 @@ model MocSubmission {
   theme                String
   builderName          String          @default("")
   builderEmail         String          @default("")
+  submitterUserId      String?
   photoPathsJson       String          @default("[]")
   instructionPathsJson String          @default("[]")
   notes                String?
@@ -129,6 +131,7 @@ model MocSubmission {
   reviewedByUserId     String?
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
+  submitter            User?           @relation("MocSubmitter", fields: [submitterUserId], references: [id], onDelete: SetNull)
   reviewedBy           User?           @relation("MocReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
   reviewNotes          MocReviewNote[]
 }

@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
+import { auth } from "@/lib/auth";
 import { sendNotificationEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 
@@ -26,6 +27,7 @@ async function saveFiles(files: File[], folder: string) {
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
     const form = await request.formData();
     const mocName = String(form.get("mocName") || "").trim();
     const theme = String(form.get("theme") || "").trim();
@@ -59,6 +61,15 @@ export async function POST(request: Request) {
       );
     }
 
+    let submitterUserId = session?.user?.id ?? null;
+    if (!submitterUserId) {
+      const matched = await prisma.user.findUnique({
+        where: { email: builderEmail },
+        select: { id: true },
+      });
+      submitterUserId = matched?.id ?? null;
+    }
+
     const base = join(process.cwd(), "uploads", "moc-submissions", Date.now().toString());
     const photoPaths = await saveFiles(photos, join(base, "photos"));
     const instructionPaths = await saveFiles(
@@ -75,6 +86,7 @@ export async function POST(request: Request) {
         theme,
         builderName,
         builderEmail,
+        submitterUserId,
         notes: notes || null,
         photoPathsJson: JSON.stringify(photoPaths),
         instructionPathsJson: JSON.stringify([
@@ -88,6 +100,24 @@ export async function POST(request: Request) {
     await sendNotificationEmail({
       subject: `New MOC submission: ${mocName}`,
       text: `Builder: ${builderName} <${builderEmail}>\nTheme: ${theme}\nNotes: ${notes || "(none)"}\nPhotos: ${photoPaths.length}\nInstruction steps: ${instructionPaths.length}\nPDF: ${pdfPaths[0] || "(none)"}\nSubmission ID: ${submission.id}\nReview: /admin/mocs/${submission.id}`,
+    });
+
+    await sendNotificationEmail({
+      to: builderEmail,
+      subject: `We got your MOC: ${mocName}`,
+      text: [
+        `Hi ${builderName},`,
+        "",
+        `Thanks for submitting "${mocName}" to Badlands Bricks.`,
+        "Status: Pending review",
+        "",
+        "Track it anytime here:",
+        `${process.env.NEXT_PUBLIC_SITE_URL || "https://badlandsbricks.com"}/my-mocs`,
+        "",
+        "We'll update you when it's approved, needs changes, or denied.",
+        "",
+        "— Badlands Bricks",
+      ].join("\n"),
     });
 
     return NextResponse.json({ ok: true, id: submission.id });
