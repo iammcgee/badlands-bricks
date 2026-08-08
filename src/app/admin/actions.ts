@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import bcrypt from "bcryptjs";
 import {
   ADMIN_COOKIE,
   getAdminPassword,
@@ -161,4 +162,59 @@ export async function assignCreatorAction(formData: FormData) {
   revalidatePath("/admin/ops");
   revalidatePath("/build");
   redirect("/admin/ops?saved=1");
+}
+
+export async function resetUserPasswordAction(formData: FormData) {
+  try {
+    await requireAdminAccess("admin");
+  } catch {
+    redirect("/admin/team?error=forbidden");
+  }
+
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
+  const password = String(formData.get("password") || "");
+  if (!email || password.length < 6) {
+    redirect("/admin/team?error=invalid");
+  }
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    redirect("/admin/team?error=notfound");
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash },
+  });
+
+  revalidatePath("/admin/team");
+  redirect("/admin/team?passwordReset=1");
+}
+
+export async function deleteUserAccountAction(formData: FormData) {
+  try {
+    await requireAdminAccess("admin");
+  } catch {
+    redirect("/admin/team?error=forbidden");
+  }
+
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
+  if (!email) {
+    redirect("/admin/team?error=invalid");
+  }
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    redirect("/admin/team?error=notfound");
+  }
+
+  await prisma.user.delete({ where: { id: user.id } });
+
+  revalidatePath("/admin/team");
+  redirect("/admin/team?deleted=1");
 }
