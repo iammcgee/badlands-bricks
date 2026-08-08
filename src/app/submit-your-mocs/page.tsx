@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SubmitMocForm } from "@/components/SubmitMocForm";
 
 export const metadata = { title: "SUBMIT YOUR MOCS" };
@@ -15,7 +16,12 @@ export default function SubmitMocsPage() {
         <p className="mt-4 text-white/70">
           Upload your photos, drag them into the right order, and we&apos;ll
           turn your instruction steps into a clean PDF — right here, no Adobe
-          needed.
+          needed. After you send it, Badlands reviews it in the admin portal,
+          and you can track approval under{" "}
+          <Link href="/my-mocs" className="text-brand-orange hover:underline">
+            My MOCs
+          </Link>
+          .
         </p>
       </div>
       <div className="mt-10">

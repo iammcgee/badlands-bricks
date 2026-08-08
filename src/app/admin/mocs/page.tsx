@@ -42,7 +42,8 @@ export default async function AdminMocsPage({
           MOC REVIEWS
         </h1>
         <p className="mt-2 text-white/60">
-          Approve, deny, or send improvement notes to builders.
+          Approve, deny, or send improvement notes. Builders track status on My
+          MOCs; email is optional when you save a review.
         </p>
       </div>
 

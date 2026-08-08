@@ -81,6 +81,8 @@ export async function reviewMocAction(formData: FormData) {
 
   let emailed = false;
   if (sendEmail && submission.builderEmail) {
+    const site =
+      process.env.NEXT_PUBLIC_SITE_URL || "https://badlandsbricks.com";
     const result = await sendNotificationEmail({
       to: submission.builderEmail,
       subject: `Badlands Bricks MOC update: ${submission.mocName}`,
@@ -92,6 +94,9 @@ export async function reviewMocAction(formData: FormData) {
         "",
         "Notes from the Badlands Bricks team:",
         body,
+        "",
+        "Track it anytime here:",
+        `${site}/my-mocs/${id}`,
         "",
         "Thanks for building with us!",
         "— Badlands Bricks",
@@ -109,6 +114,8 @@ export async function reviewMocAction(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/mocs");
   revalidatePath(`/admin/mocs/${id}`);
+  revalidatePath("/my-mocs");
+  revalidatePath(`/my-mocs/${id}`);
   redirect(
     `/admin/mocs/${id}?saved=1${sendEmail ? (emailed ? "&emailed=1" : "&emailed=0") : ""}`,
   );

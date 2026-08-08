@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import { ImageOrganizer } from "@/components/ImageOrganizer";
 import {
   buildInstructionsPdf,
@@ -9,6 +11,7 @@ import {
 } from "@/lib/moc-builder";
 
 export function SubmitMocForm() {
+  const { data: session } = useSession();
   const [builderName, setBuilderName] = useState("");
   const [builderEmail, setBuilderEmail] = useState("");
   const [mocName, setMocName] = useState("");
@@ -23,6 +26,16 @@ export function SubmitMocForm() {
   );
   const [busyPdf, setBusyPdf] = useState(false);
   const [message, setMessage] = useState("");
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (session?.user?.name && !builderName) {
+      setBuilderName(session.user.name);
+    }
+    if (session?.user?.email && !builderEmail) {
+      setBuilderEmail(session.user.email);
+    }
+  }, [session, builderName, builderEmail]);
 
   useEffect(() => {
     return () => {
@@ -121,11 +134,14 @@ export function SubmitMocForm() {
         method: "POST",
         body: data,
       });
-      const json = (await response.json()) as { error?: string };
+      const json = (await response.json()) as { error?: string; id?: string };
       if (!response.ok) throw new Error(json.error || "Submit failed");
 
       setStatus("done");
-      setMessage("Thanks! Your MOC and ordered instructions were submitted for review.");
+      setSubmittedId(json.id || null);
+      setMessage(
+        "Thanks! Your MOC was submitted for review. Track its status anytime in My MOCs.",
+      );
       revokeMediaItems(photos);
       revokeMediaItems(steps);
       setPhotos([]);
@@ -259,12 +275,41 @@ export function SubmitMocForm() {
       </section>
 
       {message ? (
-        <p
-          className={`text-sm ${
+        <div
+          className={`space-y-2 text-sm ${
             status === "error" ? "text-red-400" : "text-green-400"
           }`}
         >
-          {message}
+          <p>{message}</p>
+          {status === "done" ? (
+            <p>
+              <Link href="/my-mocs" className="text-brand-orange underline">
+                Open My MOCs
+              </Link>
+              {submittedId ? (
+                <>
+                  {" "}
+                  or{" "}
+                  <Link
+                    href={`/my-mocs/${submittedId}`}
+                    className="text-brand-orange underline"
+                  >
+                    view this submission
+                  </Link>
+                </>
+              ) : null}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!session?.user ? (
+        <p className="text-sm text-white/55">
+          Tip:{" "}
+          <Link href="/login?next=/submit-your-mocs" className="text-brand-orange">
+            log in
+          </Link>{" "}
+          first so your submission shows up under My MOCs automatically.
         </p>
       ) : null}
 
