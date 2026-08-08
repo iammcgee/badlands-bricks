@@ -46,10 +46,15 @@ export async function POST(request: Request) {
     const instructions = form
       .getAll("instructions")
       .filter((f): f is File => f instanceof File);
+    const instructionPdf = form.get("instructionPdf");
+    const pdfFile =
+      instructionPdf instanceof File && instructionPdf.size > 0
+        ? instructionPdf
+        : null;
 
     if (photos.length === 0 || instructions.length === 0) {
       return NextResponse.json(
-        { error: "Please upload MOC photos and instruction files" },
+        { error: "Please upload MOC photos and instruction step images" },
         { status: 400 },
       );
     }
@@ -60,6 +65,9 @@ export async function POST(request: Request) {
       instructions,
       join(base, "instructions"),
     );
+    const pdfPaths = pdfFile
+      ? await saveFiles([pdfFile], join(base, "pdf"))
+      : [];
 
     const submission = await prisma.mocSubmission.create({
       data: {
@@ -69,14 +77,17 @@ export async function POST(request: Request) {
         builderEmail,
         notes: notes || null,
         photoPathsJson: JSON.stringify(photoPaths),
-        instructionPathsJson: JSON.stringify(instructionPaths),
+        instructionPathsJson: JSON.stringify([
+          ...instructionPaths,
+          ...pdfPaths,
+        ]),
         status: "new",
       },
     });
 
     await sendNotificationEmail({
       subject: `New MOC submission: ${mocName}`,
-      text: `Builder: ${builderName} <${builderEmail}>\nTheme: ${theme}\nNotes: ${notes || "(none)"}\nSubmission ID: ${submission.id}\nReview: /admin/mocs/${submission.id}`,
+      text: `Builder: ${builderName} <${builderEmail}>\nTheme: ${theme}\nNotes: ${notes || "(none)"}\nPhotos: ${photoPaths.length}\nInstruction steps: ${instructionPaths.length}\nPDF: ${pdfPaths[0] || "(none)"}\nSubmission ID: ${submission.id}\nReview: /admin/mocs/${submission.id}`,
     });
 
     return NextResponse.json({ ok: true, id: submission.id });
