@@ -44,6 +44,7 @@ model Product {
   priceCents       Int
   description      String
   imagesJson       String         @default("[]")
+  youtubeUrl       String?
   downloadFilePath String?
   isActive         Boolean        @default(true)
   creatorId        String
@@ -128,6 +129,7 @@ model MocSubmission {
   photoPathsJson       String          @default("[]")
   instructionPathsJson String          @default("[]")
   notes                String?
+  youtubeUrl           String?
   status               String          @default("new")
   reviewedAt           DateTime?
   reviewedByUserId     String?

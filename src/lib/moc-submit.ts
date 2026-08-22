@@ -8,6 +8,7 @@ export async function createUserMocSubmission(input: {
   mocName: string;
   theme: string;
   notes?: string | null;
+  youtubeUrl?: string | null;
   photoPaths: string[];
   instructionPaths: string[];
   pdfPaths: string[];
@@ -21,6 +22,7 @@ export async function createUserMocSubmission(input: {
       builderEmail: input.builderEmail,
       submitterUserId: input.userId,
       notes: input.notes || null,
+      youtubeUrl: input.youtubeUrl || null,
       photoPathsJson: JSON.stringify(input.photoPaths),
       instructionPathsJson: JSON.stringify([
         ...input.instructionPaths,
@@ -32,7 +34,7 @@ export async function createUserMocSubmission(input: {
 
   await sendNotificationEmail({
     subject: `New MOC submission: ${input.mocName}`,
-    text: `Builder: ${input.builderName} <${input.builderEmail}>\nTheme: ${input.theme}\nNotes: ${input.notes || "(none)"}\nPhotos: ${input.photoPaths.length}\nInstruction steps: ${input.instructionCount}\nPDF: ${input.pdfPaths[0] || "(none)"}\nSubmission ID: ${submission.id}\nReview: /admin/mocs/${submission.id}`,
+    text: `Builder: ${input.builderName} <${input.builderEmail}>\nTheme: ${input.theme}\nYouTube: ${input.youtubeUrl || "(none)"}\nNotes: ${input.notes || "(none)"}\nPhotos: ${input.photoPaths.length}\nInstruction steps: ${input.instructionCount}\nPDF: ${input.pdfPaths[0] || "(none)"}\nSubmission ID: ${submission.id}\nReview: /admin/mocs/${submission.id}`,
   });
 
   await sendNotificationEmail({

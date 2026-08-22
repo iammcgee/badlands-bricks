@@ -15,6 +15,7 @@ export type ProductView = {
   priceCents: number;
   description: string;
   images: string[];
+  youtubeUrl: string | null;
   downloadFilePath: string | null;
   isActive: boolean;
   creatorId: string;
@@ -55,6 +56,7 @@ export function toProductView(
     priceCents: product.priceCents,
     description: product.description,
     images: parseImages(product.imagesJson),
+    youtubeUrl: product.youtubeUrl ?? null,
     downloadFilePath: product.downloadFilePath,
     isActive: product.isActive,
     creatorId: product.creatorId,

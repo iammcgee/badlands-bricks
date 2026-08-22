@@ -85,6 +85,12 @@ export default async function AdminProductEditPage({
           That URL slug is already used by another product.
         </p>
       ) : null}
+      {query.error === "youtube" ? (
+        <p className="border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-300">
+          That doesn&apos;t look like a valid YouTube link. Paste a watch or
+          youtu.be URL, or leave it blank.
+        </p>
+      ) : null}
 
       {product.mocSubmission ? (
         <p className="border border-white/15 px-4 py-3 text-sm text-white/70">
@@ -144,6 +150,19 @@ export default async function AdminProductEditPage({
             defaultValue={product.description}
             className="w-full border border-white/20 bg-black px-3 py-2 text-white outline-none focus:border-brand-orange"
           />
+        </label>
+        <label className="block space-y-2 text-sm">
+          <span className="text-white/70">YouTube video link (optional)</span>
+          <input
+            name="youtubeUrl"
+            type="url"
+            defaultValue={product.youtubeUrl || ""}
+            placeholder="https://www.youtube.com/watch?v=..."
+            className="w-full border border-white/20 bg-black px-3 py-2 text-white outline-none focus:border-brand-orange"
+          />
+          <span className="block text-xs text-white/45">
+            Paste a YouTube link to embed the video on the Build page.
+          </span>
         </label>
         <label className="block space-y-2 text-sm">
           <span className="text-white/70">Creator</span>

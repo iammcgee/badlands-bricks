@@ -3,9 +3,11 @@ import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { ProductGallery } from "@/components/ProductGallery";
+import { YoutubeEmbed } from "@/components/YoutubeEmbed";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, toProductView } from "@/lib/products";
+import { youtubeEmbedUrl } from "@/lib/youtube";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +52,7 @@ export default async function ProductPage({
     : false;
 
   const product = toProductView(record, favoritedByMe);
+  const embedUrl = youtubeEmbedUrl(product.youtubeUrl);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 md:px-8">
@@ -61,7 +64,29 @@ export default async function ProductPage({
       </p>
 
       <div className="grid gap-10 lg:grid-cols-2">
-        <ProductGallery images={product.images} name={product.name} />
+        <div className="space-y-6">
+          <ProductGallery images={product.images} name={product.name} />
+          {embedUrl ? (
+            <section className="space-y-3">
+              <h2 className="font-display text-2xl tracking-[0.06em] text-white">
+                WATCH THE BUILD
+              </h2>
+              <YoutubeEmbed url={embedUrl} title={`${product.name} video`} />
+              {product.youtubeUrl ? (
+                <p className="text-xs text-white/45">
+                  <a
+                    href={product.youtubeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-brand-orange hover:underline"
+                  >
+                    Open on YouTube
+                  </a>
+                </p>
+              ) : null}
+            </section>
+          ) : null}
+        </div>
         <div>
           <h1 className="font-display text-5xl tracking-[0.08em] text-white md:text-6xl">
             {product.name.toUpperCase()}
