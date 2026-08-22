@@ -208,8 +208,104 @@ export async function assignCreatorAction(formData: FormData) {
   });
 
   revalidatePath("/admin/ops");
+  revalidatePath("/admin/products");
   revalidatePath("/build");
   redirect("/admin/ops?saved=1");
+}
+
+export async function updateProductAction(formData: FormData) {
+  try {
+    await requireAdminAccess("reviewer");
+  } catch {
+    redirect("/admin?error=1");
+  }
+
+  const id = String(formData.get("id") || "");
+  const name = String(formData.get("name") || "").trim();
+  const slugRaw = String(formData.get("slug") || "").trim().toLowerCase();
+  const slug = slugRaw
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const description = String(formData.get("description") || "").trim();
+  const creatorId = String(formData.get("creatorId") || "").trim();
+  const priceUsd = Number.parseFloat(String(formData.get("priceUsd") || "0"));
+  const isActive = formData.get("isActive") === "on";
+
+  if (!id || !name || !slug || !description || !creatorId || !Number.isFinite(priceUsd) || priceUsd < 0) {
+    redirect(`/admin/products/${id || ""}?error=invalid`);
+  }
+
+  const existing = await prisma.product.findUnique({ where: { id } });
+  if (!existing) redirect("/admin/products?error=missing");
+
+  const slugTaken = await prisma.product.findFirst({
+    where: { slug, NOT: { id } },
+    select: { id: true },
+  });
+  if (slugTaken) {
+    redirect(`/admin/products/${id}?error=slug`);
+  }
+
+  const updated = await prisma.product.update({
+    where: { id },
+    data: {
+      name,
+      slug,
+      description,
+      creatorId,
+      priceCents: Math.round(priceUsd * 100),
+      isActive,
+    },
+  });
+
+  revalidatePath("/admin/products");
+  revalidatePath(`/admin/products/${id}`);
+  revalidatePath("/admin/ops");
+  revalidatePath("/build");
+  revalidatePath(`/build/${existing.slug}`);
+  revalidatePath(`/build/${updated.slug}`);
+  revalidatePath("/");
+  redirect("/admin/products?saved=1");
+}
+
+export async function deleteProductAction(formData: FormData) {
+  try {
+    await requireAdminAccess("reviewer");
+  } catch {
+    redirect("/admin?error=1");
+  }
+
+  const id = String(formData.get("id") || "");
+  const confirmed = formData.get("confirm") === "on";
+  if (!id || !confirmed) redirect("/admin/products");
+
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: { _count: { select: { orderItems: true } } },
+  });
+  if (!product) redirect("/admin/products?error=missing");
+
+  if (product._count.orderItems > 0) {
+    await prisma.product.update({
+      where: { id },
+      data: { isActive: false },
+    });
+    revalidatePath("/admin/products");
+    revalidatePath(`/admin/products/${id}`);
+    revalidatePath("/build");
+    revalidatePath(`/build/${product.slug}`);
+    revalidatePath("/");
+    redirect("/admin/products?error=orders");
+  }
+
+  await prisma.product.delete({ where: { id } });
+
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/ops");
+  revalidatePath("/build");
+  revalidatePath(`/build/${product.slug}`);
+  revalidatePath("/");
+  redirect("/admin/products?deleted=1");
 }
 
 export async function resetUserPasswordAction(formData: FormData) {
