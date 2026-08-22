@@ -135,7 +135,10 @@ export default async function AdminOverviewPage({
           <div className="flex items-center justify-between gap-3">
             <h2 className="font-display text-2xl text-white">Latest MOCs</h2>
             <div className="flex gap-3">
-              <Link href="/admin/mocs/new" className="text-xs text-brand-orange">
+              <Link href="/admin/products" className="text-xs text-brand-orange">
+                BUILD CATALOG
+              </Link>
+              <Link href="/admin/mocs/new" className="text-xs text-white/50 hover:text-brand-orange">
                 CREATE MOC
               </Link>
               <Link href="/admin/mocs" className="text-xs text-white/50 hover:text-brand-orange">

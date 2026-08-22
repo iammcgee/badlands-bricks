@@ -7,19 +7,6 @@ const prisma = new PrismaClient();
 
 const products = [
   {
-    slug: "max-flex",
-    name: "Max Flex",
-    priceCents: 1000,
-    description:
-      "Meet the Max Flex Trophy Truck! This awesome off-road truck is built to bend and twist over the biggest bumps and rocks without ever getting stuck.",
-    images: [
-      "/products/max-flex-1.jpg",
-      "/products/max-flex-2.jpg",
-      "/products/max-flex-3.jpg",
-    ],
-    downloadFilePath: "product-files/max-flex-instructions.pdf",
-  },
-  {
     slug: "bee-buggy",
     name: "Bee Buggy",
     priceCents: 1200,
@@ -97,6 +84,40 @@ async function main() {
   });
 
   await prisma.product.deleteMany({ where: { slug: "semi-truck" } });
+
+  // Remove the original seeded Max Flex catalog item, but keep community
+  // Max Flex products published from approved MOC submissions (e.g. Wesley's).
+  await prisma.product.deleteMany({
+    where: {
+      slug: "max-flex",
+      mocSubmissionId: null,
+    },
+  });
+
+  // If the community Max Flex was forced onto max-flex-2 (etc.), give it the
+  // clean slug once the seeded product is gone.
+  const seededGone = !(await prisma.product.findUnique({
+    where: { slug: "max-flex" },
+    select: { id: true },
+  }));
+  if (seededGone) {
+    const wesleyMaxFlex = await prisma.product.findFirst({
+      where: {
+        mocSubmissionId: { not: null },
+        OR: [
+          { slug: { startsWith: "max-flex-" } },
+          { name: { equals: "Max Flex", mode: "insensitive" } },
+        ],
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    if (wesleyMaxFlex && wesleyMaxFlex.slug !== "max-flex") {
+      await prisma.product.update({
+        where: { id: wesleyMaxFlex.id },
+        data: { slug: "max-flex" },
+      });
+    }
+  }
 
   for (const product of products) {
     ensurePlaceholderPdf(product.downloadFilePath, product.name);

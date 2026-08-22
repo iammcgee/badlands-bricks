@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 const links = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/mocs", label: "MOC Reviews" },
+  { href: "/admin/products", label: "Build Catalog" },
   { href: "/admin/ops", label: "Under the Hood" },
   { href: "/admin/team", label: "Team" },
 ];
