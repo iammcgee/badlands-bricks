@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { mkdirSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
+import { publishApprovedMocToBuild } from "../src/lib/moc-publish";
 
 const prisma = new PrismaClient();
 
@@ -62,6 +63,111 @@ startxref
   writeFileSync(fullPath, content, "utf8");
 }
 
+function looksLikeSeededMaxFlex(product: {
+  mocSubmissionId: string | null;
+  slug: string;
+  name: string;
+  downloadFilePath: string | null;
+  imagesJson: string;
+  creator: { slug: string };
+}) {
+  if (product.mocSubmissionId) return false;
+  const images = product.imagesJson.toLowerCase();
+  return (
+    product.slug === "max-flex" ||
+    product.slug.startsWith("max-flex-") ||
+    product.name.toLowerCase() === "max flex" ||
+    product.downloadFilePath === "product-files/max-flex-instructions.pdf" ||
+    images.includes("/products/max-flex-") ||
+    (product.creator.slug === "badlands-bricks" &&
+      product.name.toLowerCase().includes("max flex"))
+  );
+}
+
+async function restoreCommunityMaxFlex() {
+  // 1) Remove the original Badlands catalog Max Flex (not tied to a submission).
+  const catalogCandidates = await prisma.product.findMany({
+    where: {
+      mocSubmissionId: null,
+      OR: [
+        { slug: "max-flex" },
+        { slug: { startsWith: "max-flex-" } },
+        { name: { equals: "Max Flex", mode: "insensitive" } },
+        { downloadFilePath: "product-files/max-flex-instructions.pdf" },
+        { imagesJson: { contains: "/products/max-flex-" } },
+      ],
+    },
+    include: { creator: true, _count: { select: { orderItems: true } } },
+  });
+
+  for (const product of catalogCandidates) {
+    if (!looksLikeSeededMaxFlex(product)) continue;
+    if (product._count.orderItems > 0) {
+      await prisma.product.update({
+        where: { id: product.id },
+        data: { isActive: false, slug: `archived-${product.slug}-${product.id.slice(-6)}` },
+      });
+      console.log(`Hid seeded Max Flex with orders: ${product.slug}`);
+    } else {
+      await prisma.product.delete({ where: { id: product.id } });
+      console.log(`Deleted seeded Max Flex: ${product.slug}`);
+    }
+  }
+
+  // 2) Find Wesley's / community approved Max Flex submissions and republish.
+  const submissions = await prisma.mocSubmission.findMany({
+    where: {
+      status: "approved",
+      OR: [
+        { builderEmail: "wesleybarcus@icloud.com" },
+        { mocName: { equals: "Max Flex", mode: "insensitive" } },
+        { mocName: { contains: "Max Flex", mode: "insensitive" } },
+      ],
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  let restoredSlug: string | null = null;
+  for (const submission of submissions) {
+    // Prefer Wesley's Max Flex if multiple match.
+    const isWesley =
+      submission.builderEmail.toLowerCase() === "wesleybarcus@icloud.com";
+    const isMaxFlex = /max\s*flex/i.test(submission.mocName);
+    if (!isWesley && !isMaxFlex) continue;
+
+    const product = await publishApprovedMocToBuild(submission);
+    console.log(
+      `Restored community MOC "${submission.mocName}" by ${submission.builderName} as /build/${product.slug}`,
+    );
+
+    if (isWesley && isMaxFlex) {
+      restoredSlug = product.slug;
+      // Claim the clean slug once the seeded product is gone.
+      const taken = await prisma.product.findUnique({
+        where: { slug: "max-flex" },
+        select: { id: true },
+      });
+      if (!taken || taken.id === product.id) {
+        await prisma.product.update({
+          where: { id: product.id },
+          data: { slug: "max-flex", isActive: true },
+        });
+        restoredSlug = "max-flex";
+      }
+    } else if (!restoredSlug && isMaxFlex) {
+      restoredSlug = product.slug;
+    }
+  }
+
+  if (!restoredSlug) {
+    console.log(
+      "No approved Wesley/Max Flex submission found to restore into Build.",
+    );
+  } else {
+    console.log(`Community Max Flex live at /build/${restoredSlug}`);
+  }
+}
+
 async function main() {
   mkdirSync(join(process.cwd(), "uploads"), { recursive: true });
   mkdirSync(join(process.cwd(), "product-files"), { recursive: true });
@@ -85,39 +191,7 @@ async function main() {
 
   await prisma.product.deleteMany({ where: { slug: "semi-truck" } });
 
-  // Remove the original seeded Max Flex catalog item, but keep community
-  // Max Flex products published from approved MOC submissions (e.g. Wesley's).
-  await prisma.product.deleteMany({
-    where: {
-      slug: "max-flex",
-      mocSubmissionId: null,
-    },
-  });
-
-  // If the community Max Flex was forced onto max-flex-2 (etc.), give it the
-  // clean slug once the seeded product is gone.
-  const seededGone = !(await prisma.product.findUnique({
-    where: { slug: "max-flex" },
-    select: { id: true },
-  }));
-  if (seededGone) {
-    const wesleyMaxFlex = await prisma.product.findFirst({
-      where: {
-        mocSubmissionId: { not: null },
-        OR: [
-          { slug: { startsWith: "max-flex-" } },
-          { name: { equals: "Max Flex", mode: "insensitive" } },
-        ],
-      },
-      orderBy: { createdAt: "asc" },
-    });
-    if (wesleyMaxFlex && wesleyMaxFlex.slug !== "max-flex") {
-      await prisma.product.update({
-        where: { id: wesleyMaxFlex.id },
-        data: { slug: "max-flex" },
-      });
-    }
-  }
+  await restoreCommunityMaxFlex();
 
   for (const product of products) {
     ensurePlaceholderPdf(product.downloadFilePath, product.name);
