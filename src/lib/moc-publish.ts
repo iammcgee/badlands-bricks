@@ -90,10 +90,15 @@ export async function publishApprovedMocToBuild(
 
   const images = shopImagesFromSubmission(submission);
   const pdfUrl = shopPdfFromSubmission(submission);
+
+  const existing = await prisma.product.findUnique({
+    where: { mocSubmissionId: submission.id },
+  });
+
   const priceCents =
     typeof options?.priceCents === "number" && options.priceCents >= 0
       ? Math.round(options.priceCents)
-      : 0;
+      : existing?.priceCents ?? 0;
 
   const description = [
     submission.theme ? `Theme: ${submission.theme}.` : "",
@@ -102,10 +107,6 @@ export async function publishApprovedMocToBuild(
   ]
     .filter(Boolean)
     .join(" ");
-
-  const existing = await prisma.product.findUnique({
-    where: { mocSubmissionId: submission.id },
-  });
 
   if (existing) {
     return prisma.product.update({
