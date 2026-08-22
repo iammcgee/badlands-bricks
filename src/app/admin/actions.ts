@@ -227,12 +227,18 @@ export async function updateProductAction(formData: FormData) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   const description = String(formData.get("description") || "").trim();
+  const youtubeRaw = String(formData.get("youtubeUrl") || "").trim();
   const creatorId = String(formData.get("creatorId") || "").trim();
   const priceUsd = Number.parseFloat(String(formData.get("priceUsd") || "0"));
   const isActive = formData.get("isActive") === "on";
 
   if (!id || !name || !slug || !description || !creatorId || !Number.isFinite(priceUsd) || priceUsd < 0) {
     redirect(`/admin/products/${id || ""}?error=invalid`);
+  }
+
+  const { isValidYoutubeUrl, normalizeYoutubeUrl } = await import("@/lib/youtube");
+  if (!isValidYoutubeUrl(youtubeRaw)) {
+    redirect(`/admin/products/${id}?error=youtube`);
   }
 
   const existing = await prisma.product.findUnique({ where: { id } });
@@ -252,6 +258,7 @@ export async function updateProductAction(formData: FormData) {
       name,
       slug,
       description,
+      youtubeUrl: normalizeYoutubeUrl(youtubeRaw),
       creatorId,
       priceCents: Math.round(priceUsd * 100),
       isActive,

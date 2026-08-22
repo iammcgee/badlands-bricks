@@ -30,6 +30,7 @@ export function SubmitMocForm({
   const isAdmin = mode === "admin";
   const [mocName, setMocName] = useState("");
   const [theme, setTheme] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
   const [adminStatus, setAdminStatus] = useState("approved");
   const [photos, setPhotos] = useState<MocMediaItem[]>([]);
   const [steps, setSteps] = useState<MocMediaItem[]>([]);
@@ -183,6 +184,7 @@ export function SubmitMocForm({
           body: JSON.stringify({
             mocName: mocName.trim(),
             theme: theme.trim(),
+            youtubeUrl: youtubeUrl.trim() || undefined,
             status: isAdmin ? adminStatus : undefined,
             photoUrls: assets.photoUrls,
             instructionUrls: assets.instructionUrls,
@@ -193,6 +195,7 @@ export function SubmitMocForm({
         const data = new FormData();
         data.set("mocName", mocName.trim());
         data.set("theme", theme.trim());
+        if (youtubeUrl.trim()) data.set("youtubeUrl", youtubeUrl.trim());
         if (isAdmin) data.set("status", adminStatus);
 
         photos.forEach((item, index) => {
@@ -247,6 +250,7 @@ export function SubmitMocForm({
       setPdfUrl(null);
       setMocName("");
       setTheme("");
+      setYoutubeUrl("");
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Submit failed");
@@ -316,6 +320,20 @@ export function SubmitMocForm({
             placeholder="Desert racing, flex axle, etc."
             className="w-full border border-white/25 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-brand-orange"
           />
+        </label>
+        <label className="block space-y-2 md:col-span-2">
+          <span className="text-sm text-white">YouTube video link (optional)</span>
+          <input
+            value={youtubeUrl}
+            onChange={(event) => setYoutubeUrl(event.target.value)}
+            type="url"
+            placeholder="https://www.youtube.com/watch?v=... or youtu.be/..."
+            className="w-full border border-white/25 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-brand-orange"
+          />
+          <span className="block text-xs text-white/45">
+            Upload your video on YouTube, then paste the link here. We&apos;ll
+            embed it on your Build page — no giant video uploads needed.
+          </span>
         </label>
         {isAdmin ? (
           <label className="block space-y-2 md:col-span-2">

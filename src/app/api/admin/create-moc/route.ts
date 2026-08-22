@@ -5,6 +5,7 @@ import { MOC_STATUSES } from "@/lib/moc-review";
 import { publishApprovedMocToBuild } from "@/lib/moc-publish";
 import { parseUrlList } from "@/lib/moc-submit";
 import { prisma } from "@/lib/prisma";
+import { isValidYoutubeUrl, normalizeYoutubeUrl } from "@/lib/youtube";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
     let mocName = "";
     let theme = "";
     let notes = "";
+    let youtubeRaw = "";
     let statusRaw = "approved";
     let photoPaths: string[] = [];
     let instructionPaths: string[] = [];
@@ -29,6 +31,7 @@ export async function POST(request: Request) {
         mocName?: string;
         theme?: string;
         notes?: string;
+        youtubeUrl?: string;
         status?: string;
         photoUrls?: unknown;
         instructionUrls?: unknown;
@@ -37,6 +40,7 @@ export async function POST(request: Request) {
       mocName = String(body.mocName || "").trim();
       theme = String(body.theme || "").trim();
       notes = String(body.notes || "").trim();
+      youtubeRaw = String(body.youtubeUrl || "").trim();
       statusRaw = String(body.status || "approved").trim();
       photoPaths = parseUrlList(body.photoUrls);
       instructionPaths = parseUrlList(body.instructionUrls);
@@ -57,6 +61,7 @@ export async function POST(request: Request) {
       mocName = String(form.get("mocName") || "").trim();
       theme = String(form.get("theme") || "").trim();
       notes = String(form.get("notes") || "").trim();
+      youtubeRaw = String(form.get("youtubeUrl") || "").trim();
       statusRaw = String(form.get("status") || "approved").trim();
 
       const uploaded = await persistMocUploads(form);
@@ -81,6 +86,14 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!isValidYoutubeUrl(youtubeRaw)) {
+      return NextResponse.json(
+        { error: "Please paste a valid YouTube link (or leave it blank)" },
+        { status: 400 },
+      );
+    }
+
+    const youtubeUrl = normalizeYoutubeUrl(youtubeRaw);
     const builderName = access.label || "Badlands Staff";
     const builderEmail = (
       access.email ||
@@ -99,6 +112,7 @@ export async function POST(request: Request) {
         builderEmail,
         submitterUserId: access.userId ?? null,
         notes: notes || null,
+        youtubeUrl,
         photoPathsJson: JSON.stringify(photoPaths),
         instructionPathsJson: JSON.stringify([
           ...instructionPaths,

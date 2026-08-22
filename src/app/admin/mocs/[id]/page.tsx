@@ -148,6 +148,19 @@ export default async function AdminMocDetailPage({
           <p>
             <span className="text-white/50">Theme:</span> {submission.theme}
           </p>
+          {submission.youtubeUrl ? (
+            <p>
+              <span className="text-white/50">YouTube:</span>{" "}
+              <a
+                href={submission.youtubeUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-brand-orange hover:underline"
+              >
+                Watch video
+              </a>
+            </p>
+          ) : null}
           <p>
             <span className="text-white/50">Submitted:</span>{" "}
             {submission.createdAt.toLocaleString()}

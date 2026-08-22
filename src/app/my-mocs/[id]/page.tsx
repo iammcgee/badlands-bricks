@@ -69,6 +69,19 @@ export default async function MyMocDetailPage({
         <p>
           <span className="text-white/45">Theme:</span> {submission.theme}
         </p>
+        {submission.youtubeUrl ? (
+          <p>
+            <span className="text-white/45">YouTube:</span>{" "}
+            <a
+              href={submission.youtubeUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-brand-orange hover:underline"
+            >
+              Watch video
+            </a>
+          </p>
+        ) : null}
         <p>
           <span className="text-white/45">Submitted:</span>{" "}
           {submission.createdAt.toLocaleString()}

@@ -6,6 +6,7 @@ import {
   parseUrlList,
 } from "@/lib/moc-submit";
 import { prisma } from "@/lib/prisma";
+import { isValidYoutubeUrl, normalizeYoutubeUrl } from "@/lib/youtube";
 
 export const runtime = "nodejs";
 
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
     let mocName = "";
     let theme = "";
     let notes = "";
+    let youtubeRaw = "";
     let photoPaths: string[] = [];
     let instructionPaths: string[] = [];
     let pdfPaths: string[] = [];
@@ -47,6 +49,7 @@ export async function POST(request: Request) {
         mocName?: string;
         theme?: string;
         notes?: string;
+        youtubeUrl?: string;
         photoUrls?: unknown;
         instructionUrls?: unknown;
         pdfUrl?: string | null;
@@ -54,6 +57,7 @@ export async function POST(request: Request) {
       mocName = String(body.mocName || "").trim();
       theme = String(body.theme || "").trim();
       notes = String(body.notes || "").trim();
+      youtubeRaw = String(body.youtubeUrl || "").trim();
       photoPaths = parseUrlList(body.photoUrls);
       instructionPaths = parseUrlList(body.instructionUrls);
       const pdfUrl =
@@ -74,6 +78,7 @@ export async function POST(request: Request) {
       mocName = String(form.get("mocName") || "").trim();
       theme = String(form.get("theme") || "").trim();
       notes = String(form.get("notes") || "").trim();
+      youtubeRaw = String(form.get("youtubeUrl") || "").trim();
 
       const uploaded = await persistMocUploads(form);
       if ("error" in uploaded) {
@@ -92,6 +97,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!isValidYoutubeUrl(youtubeRaw)) {
+      return NextResponse.json(
+        { error: "Please paste a valid YouTube link (or leave it blank)" },
+        { status: 400 },
+      );
+    }
+
     const submission = await createUserMocSubmission({
       userId: user.id,
       builderName,
@@ -99,6 +111,7 @@ export async function POST(request: Request) {
       mocName,
       theme,
       notes,
+      youtubeUrl: normalizeYoutubeUrl(youtubeRaw),
       photoPaths,
       instructionPaths,
       pdfPaths,
