@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ProductCard } from "@/components/ProductCard";
 import { auth } from "@/lib/auth";
+import { userHasPlanAccess } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { toProductView } from "@/lib/products";
 
@@ -31,6 +32,8 @@ export default async function FavoritesPage() {
     .filter((row) => row.product.isActive)
     .map((row) => toProductView(row.product, true));
 
+  const hasPlanAccess = await userHasPlanAccess(session.user.id);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
       <h1 className="font-display text-4xl tracking-[0.08em] text-white md:text-5xl">
@@ -48,7 +51,11 @@ export default async function FavoritesPage() {
       ) : (
         <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              hasPlanAccess={hasPlanAccess}
+            />
           ))}
         </div>
       )}

@@ -186,26 +186,38 @@ export default async function PlanPage({
                   className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="relative">
+                    <div className="relative shrink-0">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={image}
                         alt=""
                         className="h-20 w-28 object-cover bg-neutral-900"
                       />
-                      <div className="absolute left-1 top-1">
-                        <MembersOnlyBadge compact href={null} />
+                      <div className="absolute left-1.5 top-1.5">
+                        <MembersOnlyBadge
+                          micro
+                          iconOnly
+                          href={null}
+                          unlocked={hasActivePlan}
+                        />
                       </div>
                     </div>
                     <div>
-                      <Link
-                        href={`/build/${product.slug}`}
-                        className="font-display text-xl tracking-[0.06em] text-white hover:text-brand-orange"
-                      >
-                        {product.name.toUpperCase()}
-                      </Link>
-                      <p className="mt-1 text-xs text-white/45">
-                        Membership exclusive · by {product.creator.displayName}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                          href={`/build/${product.slug}`}
+                          className="font-display text-xl tracking-[0.06em] text-white hover:text-brand-orange"
+                        >
+                          {product.name.toUpperCase()}
+                        </Link>
+                      </div>
+                      <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-white/45">
+                        <MembersOnlyBadge
+                          micro
+                          href={null}
+                          unlocked={hasActivePlan}
+                        />
+                        <span>· by {product.creator.displayName}</span>
                       </p>
                     </div>
                   </div>

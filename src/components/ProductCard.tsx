@@ -3,7 +3,13 @@ import { FavoriteButton } from "@/components/FavoriteButton";
 import { MembersOnlyBadge } from "@/components/MembersOnlyBadge";
 import { formatPrice, ProductView } from "@/lib/products";
 
-export function ProductCard({ product }: { product: ProductView }) {
+export function ProductCard({
+  product,
+  hasPlanAccess = false,
+}: {
+  product: ProductView;
+  hasPlanAccess?: boolean;
+}) {
   const image = product.images[0] || "/products/placeholder.svg";
 
   return (
@@ -18,7 +24,11 @@ export function ProductCard({ product }: { product: ProductView }) {
           />
           {product.includedInPlan ? (
             <div className="absolute left-3 top-3 z-10">
-              <MembersOnlyBadge compact href={null} />
+              <MembersOnlyBadge
+                compact
+                href={null}
+                unlocked={hasPlanAccess}
+              />
             </div>
           ) : null}
         </div>
@@ -29,7 +39,7 @@ export function ProductCard({ product }: { product: ProductView }) {
           <p className="mt-1 text-sm text-white/80">
             {product.includedInPlan ? (
               <span className="tracking-[0.12em] text-brand-orange">
-                MEMBERSHIP EXCLUSIVE
+                {hasPlanAccess ? "UNLOCKED FOR YOU" : "MEMBERSHIP EXCLUSIVE"}
               </span>
             ) : (
               formatPrice(product.priceCents)
