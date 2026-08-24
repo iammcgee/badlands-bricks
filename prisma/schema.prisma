@@ -23,6 +23,7 @@ model User {
   submissions         MocSubmission[]   @relation("MocSubmitter")
   reviewedSubmissions MocSubmission[]   @relation("MocReviewer")
   reviewNotes         MocReviewNote[]
+  planSubscription    PlanSubscription?
 }
 
 model Creator {
@@ -47,6 +48,7 @@ model Product {
   youtubeUrl       String?
   downloadFilePath String?
   isActive         Boolean        @default(true)
+  includedInPlan   Boolean        @default(false)
   creatorId        String
   mocSubmissionId  String?        @unique
   createdAt        DateTime       @default(now())
@@ -117,6 +119,22 @@ model DownloadToken {
   downloadCount Int       @default(0)
   createdAt     DateTime  @default(now())
   orderItem     OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+}
+
+/** Monthly Badlands Plan membership (Stripe subscription). */
+model PlanSubscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  stripeCustomerId     String
+  stripeSubscriptionId String    @unique
+  status               String    @default("incomplete")
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([stripeCustomerId])
 }
 
 model MocSubmission {

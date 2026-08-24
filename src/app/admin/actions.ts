@@ -231,6 +231,7 @@ export async function updateProductAction(formData: FormData) {
   const creatorId = String(formData.get("creatorId") || "").trim();
   const priceUsd = Number.parseFloat(String(formData.get("priceUsd") || "0"));
   const isActive = formData.get("isActive") === "on";
+  const includedInPlan = formData.get("includedInPlan") === "on";
 
   if (!id || !name || !slug || !description || !creatorId || !Number.isFinite(priceUsd) || priceUsd < 0) {
     redirect(`/admin/products/${id || ""}?error=invalid`);
@@ -262,6 +263,7 @@ export async function updateProductAction(formData: FormData) {
       creatorId,
       priceCents: Math.round(priceUsd * 100),
       isActive,
+      includedInPlan,
     },
   });
 
@@ -271,6 +273,7 @@ export async function updateProductAction(formData: FormData) {
   revalidatePath("/build");
   revalidatePath(`/build/${existing.slug}`);
   revalidatePath(`/build/${updated.slug}`);
+  revalidatePath("/plan");
   revalidatePath("/");
   redirect("/admin/products?saved=1");
 }

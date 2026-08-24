@@ -18,6 +18,7 @@ export type ProductView = {
   youtubeUrl: string | null;
   downloadFilePath: string | null;
   isActive: boolean;
+  includedInPlan: boolean;
   creatorId: string;
   creator?: CreatorView;
   favoriteCount?: number;
@@ -59,6 +60,7 @@ export function toProductView(
     youtubeUrl: product.youtubeUrl ?? null,
     downloadFilePath: product.downloadFilePath,
     isActive: product.isActive,
+    includedInPlan: product.includedInPlan,
     creatorId: product.creatorId,
     creator: product.creator ? toCreatorView(product.creator) : undefined,
     favoriteCount: product._count?.favorites ?? 0,
