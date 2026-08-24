@@ -77,6 +77,9 @@ export function AccountMenu() {
               Admin portal
             </MenuLink>
           ) : null}
+          <MenuLink href="/plan" onClick={() => setOpen(false)}>
+            Badlands Plan
+          </MenuLink>
           <MenuLink href="/my-mocs" onClick={() => setOpen(false)}>
             My MOCs
           </MenuLink>

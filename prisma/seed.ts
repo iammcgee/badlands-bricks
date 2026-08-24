@@ -204,6 +204,7 @@ async function main() {
         imagesJson: JSON.stringify(product.images),
         downloadFilePath: product.downloadFilePath,
         isActive: true,
+        includedInPlan: true,
         creatorId: creator.id,
       },
       create: {
@@ -214,10 +215,26 @@ async function main() {
         imagesJson: JSON.stringify(product.images),
         downloadFilePath: product.downloadFilePath,
         isActive: true,
+        includedInPlan: true,
         creatorId: creator.id,
       },
     });
   }
+
+  // Max Flex (community restore) + Bee Buggy + Trophy Truck are the launch plan set.
+  const planMarked = await prisma.product.updateMany({
+    where: {
+      OR: [
+        { slug: "bee-buggy" },
+        { slug: "trophy-truck" },
+        { slug: "max-flex" },
+        { name: { equals: "Max Flex", mode: "insensitive" } },
+        { name: { equals: "Bee Buggy", mode: "insensitive" } },
+        { name: { equals: "Trophy Truck", mode: "insensitive" } },
+      ],
+    },
+    data: { includedInPlan: true },
+  });
 
   const ownerEmails = [
     "wesleybarcus@icloud.com",
@@ -229,7 +246,7 @@ async function main() {
   });
 
   console.log(
-    `Seeded creator + ${products.length} products. Promoted ${promoted.count} owner admin(s).`,
+    `Seeded creator + ${products.length} products. Marked ${planMarked.count} plan build(s). Promoted ${promoted.count} owner admin(s).`,
   );
 }
 

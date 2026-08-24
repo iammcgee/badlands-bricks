@@ -22,6 +22,11 @@ export function ProductCard({ product }: { product: ProductView }) {
           </h3>
           <p className="mt-1 text-sm text-white/80">
             {formatPrice(product.priceCents)}
+            {product.includedInPlan ? (
+              <span className="ml-2 text-xs tracking-[0.12em] text-brand-orange">
+                · PLAN
+              </span>
+            ) : null}
           </p>
           {product.creator && (
             <p className="mt-1 text-xs tracking-[0.1em] text-white/50">

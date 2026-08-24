@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AddToCartButton } from "@/components/AddToCartButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { ProductGallery } from "@/components/ProductGallery";
+import { ProductPurchasePanel } from "@/components/ProductPurchasePanel";
 import { YoutubeEmbed } from "@/components/YoutubeEmbed";
 import { auth } from "@/lib/auth";
+import { getPlanPriceLabel, userHasPlanAccess } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, toProductView } from "@/lib/products";
 import { youtubeEmbedUrl } from "@/lib/youtube";
@@ -49,6 +50,10 @@ export default async function ProductPage({
           },
         }),
       )
+    : false;
+
+  const hasPlanAccess = session?.user?.id
+    ? await userHasPlanAccess(session.user.id)
     : false;
 
   const product = toProductView(record, favoritedByMe);
@@ -102,14 +107,28 @@ export default async function ProductPage({
               </Link>
             </p>
           )}
-          <p className="mt-3 text-xl text-white/90">
-            {formatPrice(product.priceCents)}
-          </p>
+          <div className="mt-3 flex flex-wrap items-baseline gap-3">
+            <p className="text-xl text-white/90">
+              {formatPrice(product.priceCents)}
+            </p>
+            {product.includedInPlan ? (
+              <Link
+                href="/plan"
+                className="text-xs tracking-[0.14em] text-brand-orange hover:underline"
+              >
+                IN BADLANDS PLAN
+              </Link>
+            ) : null}
+          </div>
           <p className="mt-6 max-w-xl leading-relaxed text-white/75">
             {product.description}
           </p>
-          <div className="mt-8 max-w-md space-y-3">
-            <AddToCartButton product={product} />
+          <ProductPurchasePanel
+            product={product}
+            planPriceLabel={getPlanPriceLabel()}
+            hasPlanAccess={hasPlanAccess}
+          />
+          <div className="mt-3 max-w-md">
             <FavoriteButton
               productId={product.id}
               initialFavorited={Boolean(product.favoritedByMe)}
@@ -117,7 +136,8 @@ export default async function ProductPage({
             />
           </div>
           <p className="mt-4 text-xs text-white/45">
-            Digital building instructions delivered after checkout.
+            Digital building instructions delivered after checkout or with an
+            active Badlands Plan.
           </p>
         </div>
       </div>

@@ -94,6 +94,11 @@ export default async function AdminProductsPage({
                       Live
                     </span>
                   )}
+                  {product.includedInPlan ? (
+                    <span className="text-xs uppercase tracking-[0.12em] text-brand-orange">
+                      Plan
+                    </span>
+                  ) : null}
                 </div>
                 <p className="mt-1 text-sm text-white/55">
                   {formatPrice(product.priceCents)} · by{" "}

@@ -186,6 +186,14 @@ export default async function AdminProductEditPage({
           />
           Show in Build (uncheck to hide without deleting)
         </label>
+        <label className="flex items-center gap-2 text-sm text-white/70">
+          <input
+            type="checkbox"
+            name="includedInPlan"
+            defaultChecked={product.includedInPlan}
+          />
+          Include in Badlands Plan (monthly members can download)
+        </label>
 
         {images.length > 0 ? (
           <div>
