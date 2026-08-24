@@ -1,5 +1,6 @@
 import { ProductCard } from "@/components/ProductCard";
 import { auth } from "@/lib/auth";
+import { userHasPlanAccess } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { toProductView } from "@/lib/products";
 
@@ -48,6 +49,10 @@ export default async function BuildPage({
       )
     : new Set<string>();
 
+  const hasPlanAccess = session?.user?.id
+    ? await userHasPlanAccess(session.user.id)
+    : false;
+
   const products = records.map((product) =>
     toProductView(product, favoritedIds.has(product.id)),
   );
@@ -74,7 +79,11 @@ export default async function BuildPage({
 
       <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
         {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <ProductCard
+            key={product.id}
+            product={product}
+            hasPlanAccess={hasPlanAccess}
+          />
         ))}
       </div>
 

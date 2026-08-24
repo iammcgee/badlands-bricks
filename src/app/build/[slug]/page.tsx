@@ -111,9 +111,11 @@ export default async function ProductPage({
           <div className="mt-3 flex flex-wrap items-center gap-3">
             {product.includedInPlan ? (
               <>
-                <MembersOnlyBadge />
+                <MembersOnlyBadge unlocked={hasPlanAccess} />
                 <p className="text-sm tracking-[0.1em] text-white/60">
-                  {getPlanPriceLabel()} membership
+                  {hasPlanAccess
+                    ? "Included with your membership"
+                    : `${getPlanPriceLabel()} membership`}
                 </p>
               </>
             ) : (

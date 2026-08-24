@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { FollowButton } from "@/components/FollowButton";
 import { ProductCard } from "@/components/ProductCard";
 import { auth } from "@/lib/auth";
+import { userHasPlanAccess } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { toProductView } from "@/lib/products";
 
@@ -69,6 +70,10 @@ export default async function CreatorPage({
       )
     : false;
 
+  const hasPlanAccess = session?.user?.id
+    ? await userHasPlanAccess(session.user.id)
+    : false;
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
@@ -106,6 +111,7 @@ export default async function CreatorPage({
           <ProductCard
             key={product.id}
             product={toProductView(product, favoritedIds.has(product.id))}
+            hasPlanAccess={hasPlanAccess}
           />
         ))}
       </div>

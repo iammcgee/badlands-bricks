@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ProductCard } from "@/components/ProductCard";
 import { auth } from "@/lib/auth";
+import { userHasPlanAccess } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { toProductView } from "@/lib/products";
 
@@ -34,6 +35,10 @@ export default async function HomePage() {
   const views = products.map((product) =>
     toProductView(product, favoriteIds.has(product.id)),
   );
+
+  const hasPlanAccess = session?.user?.id
+    ? await userHasPlanAccess(session.user.id)
+    : false;
 
   const marquee =
     "DISCOVER CUSTOM LEGO® MOCS & UNIQUE BUILDING INSTRUCTIONS. ";
@@ -70,7 +75,11 @@ export default async function HomePage() {
         </h2>
         <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {views.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              hasPlanAccess={hasPlanAccess}
+            />
           ))}
         </div>
         <div className="mt-12 text-center">
