@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { MembersOnlyBadge } from "@/components/MembersOnlyBadge";
 import { formatPrice, ProductView } from "@/lib/products";
 
 export function ProductCard({ product }: { product: ProductView }) {
@@ -8,25 +9,31 @@ export function ProductCard({ product }: { product: ProductView }) {
   return (
     <div className="group relative block">
       <Link href={`/build/${product.slug}`} className="block">
-        <div className="aspect-[4/3] overflow-hidden bg-neutral-900">
+        <div className="relative aspect-[4/3] overflow-hidden bg-neutral-900">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={image}
             alt={product.name}
             className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
           />
+          {product.includedInPlan ? (
+            <div className="absolute left-3 top-3 z-10">
+              <MembersOnlyBadge compact href={null} />
+            </div>
+          ) : null}
         </div>
         <div className="mt-3 text-center">
           <h3 className="font-display text-xl tracking-[0.08em] text-white">
             {product.name.toUpperCase()}
           </h3>
           <p className="mt-1 text-sm text-white/80">
-            {formatPrice(product.priceCents)}
             {product.includedInPlan ? (
-              <span className="ml-2 text-xs tracking-[0.12em] text-brand-orange">
-                · PLAN
+              <span className="tracking-[0.12em] text-brand-orange">
+                MEMBERSHIP EXCLUSIVE
               </span>
-            ) : null}
+            ) : (
+              formatPrice(product.priceCents)
+            )}
           </p>
           {product.creator && (
             <p className="mt-1 text-xs tracking-[0.1em] text-white/50">
@@ -35,7 +42,7 @@ export function ProductCard({ product }: { product: ProductView }) {
           )}
         </div>
       </Link>
-      <div className="absolute right-3 top-3 rounded bg-black/70 px-2 py-1">
+      <div className="absolute right-3 top-3 z-10 rounded bg-black/70 px-2 py-1">
         <FavoriteButton
           productId={product.id}
           initialFavorited={Boolean(product.favoritedByMe)}

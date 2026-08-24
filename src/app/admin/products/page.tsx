@@ -95,8 +95,8 @@ export default async function AdminProductsPage({
                     </span>
                   )}
                   {product.includedInPlan ? (
-                    <span className="text-xs uppercase tracking-[0.12em] text-brand-orange">
-                      Plan
+                    <span className="bg-brand-orange px-2 py-0.5 text-[10px] font-bold tracking-[0.14em] text-black">
+                      MEMBERS ONLY
                     </span>
                   ) : null}
                 </div>

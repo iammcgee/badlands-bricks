@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { MembersOnlyBadge } from "@/components/MembersOnlyBadge";
 import { ProductGallery } from "@/components/ProductGallery";
 import { ProductPurchasePanel } from "@/components/ProductPurchasePanel";
 import { YoutubeEmbed } from "@/components/YoutubeEmbed";
@@ -107,18 +108,19 @@ export default async function ProductPage({
               </Link>
             </p>
           )}
-          <div className="mt-3 flex flex-wrap items-baseline gap-3">
-            <p className="text-xl text-white/90">
-              {formatPrice(product.priceCents)}
-            </p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
             {product.includedInPlan ? (
-              <Link
-                href="/plan"
-                className="text-xs tracking-[0.14em] text-brand-orange hover:underline"
-              >
-                IN BADLANDS PLAN
-              </Link>
-            ) : null}
+              <>
+                <MembersOnlyBadge />
+                <p className="text-sm tracking-[0.1em] text-white/60">
+                  {getPlanPriceLabel()} membership
+                </p>
+              </>
+            ) : (
+              <p className="text-xl text-white/90">
+                {formatPrice(product.priceCents)}
+              </p>
+            )}
           </div>
           <p className="mt-6 max-w-xl leading-relaxed text-white/75">
             {product.description}
@@ -127,6 +129,7 @@ export default async function ProductPage({
             product={product}
             planPriceLabel={getPlanPriceLabel()}
             hasPlanAccess={hasPlanAccess}
+            signedIn={Boolean(session?.user)}
           />
           <div className="mt-3 max-w-md">
             <FavoriteButton
@@ -136,8 +139,9 @@ export default async function ProductPage({
             />
           </div>
           <p className="mt-4 text-xs text-white/45">
-            Digital building instructions delivered after checkout or with an
-            active Badlands Plan.
+            {product.includedInPlan
+              ? "Members-only instructions — delivered exclusively through the Badlands Plan."
+              : "Digital building instructions delivered after checkout."}
           </p>
         </div>
       </div>

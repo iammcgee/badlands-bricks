@@ -71,7 +71,7 @@ export async function POST() {
               product_data: {
                 name: getPlanName(),
                 description:
-                  "Monthly access to Badlands Plan builds (Max Flex, Bee Buggy, Trophy Truck, and more added to the plan).",
+                  "Monthly membership with exclusive Badlands members-only MOC builds.",
               },
             },
           },
