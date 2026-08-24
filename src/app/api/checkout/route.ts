@@ -35,6 +35,20 @@ export async function POST(request: Request) {
       );
     }
 
+    const membersOnly = products.filter((product) => product.includedInPlan);
+    if (membersOnly.length > 0) {
+      return NextResponse.json(
+        {
+          error: `${membersOnly.map((p) => p.name).join(", ")} ${
+            membersOnly.length === 1 ? "is" : "are"
+          } members-only. Join the Badlands Plan to unlock ${
+            membersOnly.length === 1 ? "it" : "them"
+          }.`,
+        },
+        { status: 400 },
+      );
+    }
+
     const lineItems = body.items.map((item) => {
       const product = products.find((row) => row.id === item.productId)!;
       return {

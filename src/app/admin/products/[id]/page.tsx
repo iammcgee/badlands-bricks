@@ -192,7 +192,7 @@ export default async function AdminProductEditPage({
             name="includedInPlan"
             defaultChecked={product.includedInPlan}
           />
-          Include in Badlands Plan (monthly members can download)
+          Include in membership (MEMBERS ONLY — not sold individually)
         </label>
 
         {images.length > 0 ? (

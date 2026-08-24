@@ -8,7 +8,7 @@ import { LOGO_SRC, YOUTUBE_URL } from "@/lib/site";
 
 const nav = [
   { href: "/build", label: "BUILD" },
-  { href: "/plan", label: "PLAN" },
+  { href: "/plan", label: "MEMBERSHIP" },
   { href: "/submit-your-mocs", label: "SUBMIT YOUR MOCS" },
   { href: "/contact-us", label: "CONTACT" },
 ];

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PlanSubscribeButton } from "@/components/PlanSubscribeButton";
+import { MembersOnlyBadge } from "@/components/MembersOnlyBadge";
 import { auth } from "@/lib/auth";
 import {
   getPlanName,
@@ -9,7 +10,6 @@ import {
   getUserPlanSubscription,
   upsertPlanSubscriptionFromStripe,
 } from "@/lib/plan";
-import { formatPrice } from "@/lib/products";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
@@ -115,11 +115,12 @@ export default async function PlanPage({
         {getPlanName().toUpperCase()}
       </h1>
       <p className="mt-4 max-w-2xl text-lg leading-relaxed text-white/70">
-        One monthly fee unlocks every build in the plan — starting with{" "}
+        Exclusive builds delivered only to members. Join the plan for monthly
+        access to members-only MOCs — starting with{" "}
         <span className="text-white">Max Flex</span>,{" "}
         <span className="text-white">Bee Buggy</span>, and{" "}
-        <span className="text-white">Trophy Truck</span>. Buy individually
-        anytime, or subscribe and download while you&apos;re a member.
+        <span className="text-white">Trophy Truck</span>. These are not sold
+        individually.
       </p>
 
       <div className="mt-8 flex flex-wrap items-end gap-6 border-y border-white/10 py-8">
@@ -147,7 +148,7 @@ export default async function PlanPage({
 
       {query.subscribed ? (
         <p className="mt-6 border border-brand-orange/40 bg-brand-orange/10 px-4 py-3 text-sm text-brand-orange">
-          Welcome aboard. Your plan builds are ready to download below.
+          Welcome aboard. Your members-only builds are ready to download below.
         </p>
       ) : null}
       {query.canceled ? (
@@ -158,11 +159,12 @@ export default async function PlanPage({
 
       <section className="mt-12 space-y-6">
         <h2 className="font-display text-3xl tracking-[0.06em] text-white">
-          INCLUDED BUILDS
+          MEMBERS-ONLY BUILDS
         </h2>
         {products.length === 0 ? (
           <p className="text-white/50">
-            Plan builds will appear here once they&apos;re marked in the catalog.
+            Exclusive membership builds will appear here once they&apos;re marked
+            in the catalog.
           </p>
         ) : (
           <ul className="divide-y divide-white/10 border border-white/10">
@@ -184,12 +186,17 @@ export default async function PlanPage({
                   className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex items-center gap-4">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={image}
-                      alt=""
-                      className="h-20 w-28 object-cover bg-neutral-900"
-                    />
+                    <div className="relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={image}
+                        alt=""
+                        className="h-20 w-28 object-cover bg-neutral-900"
+                      />
+                      <div className="absolute left-1 top-1">
+                        <MembersOnlyBadge compact href={null} />
+                      </div>
+                    </div>
                     <div>
                       <Link
                         href={`/build/${product.slug}`}
@@ -198,8 +205,7 @@ export default async function PlanPage({
                         {product.name.toUpperCase()}
                       </Link>
                       <p className="mt-1 text-xs text-white/45">
-                        Individual {formatPrice(product.priceCents)} · by{" "}
-                        {product.creator.displayName}
+                        Membership exclusive · by {product.creator.displayName}
                       </p>
                     </div>
                   </div>
@@ -227,9 +233,10 @@ export default async function PlanPage({
       </section>
 
       <p className="mt-10 max-w-2xl text-sm text-white/45">
-        Individual purchases still work the same way through cart checkout.
-        Plan members get ongoing access to every build marked as included —
-        no need to buy those separately while subscribed.
+        Members-only builds are never sold in the cart. Join the Badlands Plan
+        to unlock every exclusive MOC in the membership — and keep access while
+        your subscription stays active. Other catalog builds can still be
+        purchased individually.
       </p>
     </div>
   );

@@ -78,7 +78,7 @@ export function AccountMenu() {
             </MenuLink>
           ) : null}
           <MenuLink href="/plan" onClick={() => setOpen(false)}>
-            Badlands Plan
+            Membership
           </MenuLink>
           <MenuLink href="/my-mocs" onClick={() => setOpen(false)}>
             My MOCs
