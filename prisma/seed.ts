@@ -245,8 +245,13 @@ async function main() {
     data: { role: "admin" },
   });
 
+  const { backfillEarlyCreatorCohort } = await import(
+    "../src/lib/early-creators"
+  );
+  const early = await backfillEarlyCreatorCohort();
+
   console.log(
-    `Seeded creator + ${products.length} products. Marked ${planMarked.count} plan build(s). Promoted ${promoted.count} owner admin(s).`,
+    `Seeded creator + ${products.length} products. Marked ${planMarked.count} plan build(s). Promoted ${promoted.count} owner admin(s). Founding Creators: ${early.total} (assigned ${early.assigned} this run).`,
   );
 }
 

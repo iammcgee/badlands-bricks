@@ -9,7 +9,7 @@ import {
   mocStatusLabel,
   parseJsonStringArray,
 } from "@/lib/moc-review";
-import { canUserSellMocs } from "@/lib/plan";
+import { getCreatorSellAccess } from "@/lib/plan";
 import { formatPrice } from "@/lib/products";
 import { prisma } from "@/lib/prisma";
 
@@ -89,7 +89,7 @@ export default async function AdminMocDetailPage({
       label: fileLabel(path) || `Step ${index + 1}`,
     }));
   const instructionDocs = instructions.filter((path) => !isImagePath(path));
-  const submitterCanSell = await canUserSellMocs(submission.submitterUserId);
+  const sellAccess = await getCreatorSellAccess(submission.submitterUserId);
   const requestedPrice =
     submission.requestedPriceCents != null && submission.requestedPriceCents > 0
       ? formatPrice(submission.requestedPriceCents)
@@ -184,12 +184,18 @@ export default async function AdminMocDetailPage({
             )}
           </p>
           <p>
-            <span className="text-white/50">Membership sell access:</span>{" "}
-            {submitterCanSell ? (
-              <span className="text-green-400">Active — can sell</span>
+            <span className="text-white/50">Sell access:</span>{" "}
+            {sellAccess.reason === "early_creator" ? (
+              <span className="text-green-400">
+                Founding Creator #{sellAccess.earlyCreatorNumber} — can sell
+              </span>
+            ) : sellAccess.reason === "membership" ? (
+              <span className="text-green-400">
+                Active membership — can sell
+              </span>
             ) : (
               <span className="text-white/70">
-                Not a member — paid price will publish as free
+                No sell access — paid price will publish as free
               </span>
             )}
           </p>
