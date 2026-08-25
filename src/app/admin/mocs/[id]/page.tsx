@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { reviewMocAction } from "@/app/admin/actions";
+import { AdminMocMediaGallery } from "@/components/AdminMocMediaGallery";
 import { getAdminAccess } from "@/lib/admin";
 import { isRemoteMocPath } from "@/lib/moc-files";
 import {
@@ -27,6 +28,12 @@ function fileLabel(path: string) {
   }
   return path.split("/").pop() || path;
 }
+
+function isImagePath(path: string) {
+  const clean = path.split("?")[0].toLowerCase();
+  return /\.(jpe?g|png|gif|webp|avif|heic|heif)$/i.test(clean);
+}
+
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +78,17 @@ export default async function AdminMocDetailPage({
 
   const photos = parseJsonStringArray(submission.photoPathsJson);
   const instructions = parseJsonStringArray(submission.instructionPathsJson);
+  const photoItems = photos.map((path, index) => ({
+    src: fileHref(path),
+    label: fileLabel(path) || `Photo ${index + 1}`,
+  }));
+  const instructionImages = instructions
+    .filter(isImagePath)
+    .map((path, index) => ({
+      src: fileHref(path),
+      label: fileLabel(path) || `Step ${index + 1}`,
+    }));
+  const instructionDocs = instructions.filter((path) => !isImagePath(path));
   const submitterCanSell = await canUserSellMocs(submission.submitterUserId);
   const requestedPrice =
     submission.requestedPriceCents != null && submission.requestedPriceCents > 0
@@ -207,47 +225,41 @@ export default async function AdminMocDetailPage({
             </p>
           ) : null}
 
-          <div>
-            <p className="mb-2 text-white/50">Photo files</p>
-            <ul className="space-y-1 text-xs text-white/70">
-              {photos.length === 0 && <li>None stored</li>}
-              {photos.map((path) => (
-                <li key={path}>
-                  <a
-                    href={fileHref(path)}
-                    className="text-brand-orange hover:underline"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {fileLabel(path)}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <p className="mb-2 text-white/50">Instruction files</p>
-            <ul className="space-y-1 text-xs text-white/70">
-              {instructions.length === 0 && <li>None stored</li>}
-              {instructions.map((path) => (
-                <li key={path}>
-                  <a
-                    href={fileHref(path)}
-                    className="text-brand-orange hover:underline"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {fileLabel(path)}
-                  </a>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 text-xs text-white/40">
-              Files open from Vercel Blob when{" "}
-              <code className="text-white/60">BLOB_READ_WRITE_TOKEN</code> is
-              configured; otherwise they only persist on local disk.
-            </p>
-          </div>
+          <AdminMocMediaGallery
+            title="Showcase photos"
+            items={photoItems}
+            emptyLabel="No showcase photos stored"
+          />
+          <AdminMocMediaGallery
+            title="Instruction step photos"
+            items={instructionImages}
+            emptyLabel="No instruction step photos stored"
+          />
+          {instructionDocs.length > 0 ? (
+            <div>
+              <p className="mb-2 text-white/50">Instruction files (PDF / other)</p>
+              <ul className="space-y-1 text-xs text-white/70">
+                {instructionDocs.map((path) => (
+                  <li key={path}>
+                    <a
+                      href={fileHref(path)}
+                      className="text-brand-orange hover:underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {fileLabel(path)}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <p className="text-xs text-white/40">
+            Click any photo to open the gallery and scroll through the set with
+            arrows or keyboard. Files open from Vercel Blob when{" "}
+            <code className="text-white/60">BLOB_READ_WRITE_TOKEN</code> is
+            configured; otherwise they only persist on local disk.
+          </p>
         </section>
 
         <section className="space-y-4 border border-white/15 p-5">
