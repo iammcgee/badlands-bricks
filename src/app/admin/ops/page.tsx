@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { assignCreatorAction } from "@/app/admin/actions";
 import { getAdminAccess } from "@/lib/admin";
@@ -58,10 +59,14 @@ export default async function AdminOpsPage({
       )}
 
       <section id="system" className="grid gap-3 sm:grid-cols-3">
-        <div className="border border-white/15 px-4 py-4">
+        <Link
+          href="/admin/team"
+          className="border border-white/15 px-4 py-4 transition hover:border-brand-orange"
+        >
           <p className="text-xs tracking-[0.14em] text-white/50">ONLINE</p>
           <p className="mt-1 font-display text-3xl text-white">{onlineCount}</p>
-        </div>
+          <p className="mt-2 text-xs text-white/45">See who by name → Team</p>
+        </Link>
         <div className="border border-white/15 px-4 py-4">
           <p className="text-xs tracking-[0.14em] text-white/50">FAVORITES</p>
           <p className="mt-1 font-display text-3xl text-white">{favoriteCount}</p>

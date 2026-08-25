@@ -60,7 +60,7 @@ export default async function AdminTeamPage({
         name: true,
         email: true,
         role: true,
-        earlyCreatorNumber: true,
+        foundingMemberNumber: true,
         createdAt: true,
         planSubscription: {
           select: { status: true, cancelAtPeriodEnd: true },
@@ -85,6 +85,33 @@ export default async function AdminTeamPage({
     }
   }
 
+  const liveUserIds = [...liveByUserId.keys()];
+  const [liveAccountRows, anonymousLiveCount] = await Promise.all([
+    liveUserIds.length > 0
+      ? prisma.user.findMany({
+          where: { id: { in: liveUserIds } },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        })
+      : Promise.resolve([]),
+    prisma.presenceSession.count({
+      where: {
+        userId: null,
+        lastSeenAt: { gte: liveSince },
+      },
+    }),
+  ]);
+
+  const liveAccounts = liveAccountRows.sort((a, b) => {
+    const aSeen = liveByUserId.get(a.id)?.getTime() ?? 0;
+    const bSeen = liveByUserId.get(b.id)?.getTime() ?? 0;
+    return bSeen - aSeen;
+  });
+
   const liveCount = accounts.filter((user) => liveByUserId.has(user.id)).length;
   const sortedAccounts = [...accounts].sort((a, b) => {
     const aLive = liveByUserId.has(a.id) ? 1 : 0;
@@ -102,9 +129,64 @@ export default async function AdminTeamPage({
           TEAM
         </h1>
         <p className="mt-2 text-white/60">
-          Every Badlands account, live status, roles, and account tools.
+          Every Badlands account, live status by name, roles, and account tools.
         </p>
       </div>
+
+      <section className="border border-green-400/30 bg-green-400/5 p-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="font-display text-2xl text-white">Live right now</h2>
+            <p className="mt-1 text-sm text-white/55">
+              Signed-in accounts active in the last 2 minutes
+              {anonymousLiveCount > 0
+                ? ` · plus ${anonymousLiveCount} guest tab${anonymousLiveCount === 1 ? "" : "s"} (not signed in)`
+                : ""}
+            </p>
+          </div>
+          <p className="text-sm font-bold tracking-[0.14em] text-green-400">
+            {liveAccounts.length} ACCOUNT{liveAccounts.length === 1 ? "" : "S"} LIVE
+          </p>
+        </div>
+        {liveAccounts.length === 0 ? (
+          <p className="mt-4 text-sm text-white/50">
+            No signed-in accounts are live right now. The footer counter can
+            still show guests browsing without logging in.
+          </p>
+        ) : (
+          <ul className="mt-4 divide-y divide-white/10 border border-white/10">
+            {liveAccounts.map((user) => {
+              const seen = liveByUserId.get(user.id);
+              return (
+                <li
+                  key={user.id}
+                  className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="font-semibold text-white">
+                      <span className="mr-2 inline-block h-2 w-2 rounded-full bg-green-400" />
+                      {user.name}
+                    </p>
+                    <p className="text-sm text-white/55">
+                      {user.email} · {user.role}
+                    </p>
+                  </div>
+                  <p className="text-xs tracking-[0.12em] text-green-400/80">
+                    LAST SEEN{" "}
+                    {seen
+                      ? seen.toLocaleTimeString([], {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        })
+                      : "just now"}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       {query.saved && (
         <p className="text-sm text-brand-orange">Team role updated.</p>
@@ -372,12 +454,12 @@ export default async function AdminTeamPage({
                               MEMBER
                             </span>
                           ) : null}
-                          {user.earlyCreatorNumber != null ? (
+                          {user.foundingMemberNumber != null ? (
                             <span className="border border-white/20 px-2 py-0.5 text-[10px] font-bold tracking-[0.1em] text-white/70">
-                              FOUNDING #{user.earlyCreatorNumber}
+                              FOUNDING #{user.foundingMemberNumber}
                             </span>
                           ) : null}
-                          {!member && user.earlyCreatorNumber == null ? (
+                          {!member && user.foundingMemberNumber == null ? (
                             <span className="text-xs text-white/35">—</span>
                           ) : null}
                         </div>
