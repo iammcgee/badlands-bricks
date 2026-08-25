@@ -20,11 +20,8 @@ type SubmitMocFormProps = {
   mode?: "user" | "admin";
   /** When true, files go to Vercel Blob (required for reliable production submits). */
   useBlobUploads?: boolean;
-  /** Active Badlands Plan members or Founding Creators can request a sale price. */
+  /** Active Badlands Plan members can request a sale price. */
   canSell?: boolean;
-  /** Why selling is unlocked — drives the copy under Sell Your MOC. */
-  sellReason?: "membership" | "early_creator" | null;
-  earlyCreatorNumber?: number | null;
   planPriceLabel?: string;
 };
 
@@ -32,8 +29,6 @@ export function SubmitMocForm({
   mode = "user",
   useBlobUploads = false,
   canSell = false,
-  sellReason = null,
-  earlyCreatorNumber = null,
   planPriceLabel = "$9.99/mo",
 }: SubmitMocFormProps) {
   const { data: session, status: sessionStatus } = useSession();
@@ -386,10 +381,8 @@ export function SubmitMocForm({
                       className="w-full border border-white/25 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-brand-orange"
                     />
                     <span className="block text-xs text-white/45">
-                      {sellReason === "early_creator"
-                        ? `Founding Creator #${earlyCreatorNumber} perk — set what shoppers pay for your instructions.`
-                        : "Membership perk unlocked — set what shoppers pay for your instructions."}{" "}
-                      Leave unchecked to publish as a free build.
+                      Membership perk unlocked — set what shoppers pay for your
+                      instructions. Leave unchecked to publish as a free build.
                     </span>
                   </label>
                 ) : (
@@ -404,8 +397,8 @@ export function SubmitMocForm({
                 <p>
                   Anyone can upload MOCs for free.{" "}
                   <span className="text-white">
-                    Selling unlocks with Badlands Plan membership, or if
-                    you&apos;re one of the first Founding Creators.
+                    Selling (setting a price) unlocks with Badlands Plan
+                    membership.
                   </span>
                 </p>
                 <Link
@@ -414,6 +407,9 @@ export function SubmitMocForm({
                 >
                   JOIN MEMBERSHIP · {planPriceLabel}
                 </Link>
+                <p className="text-xs text-white/45">
+                  First 30 memberships get the first month free.
+                </p>
               </div>
             )}
           </div>

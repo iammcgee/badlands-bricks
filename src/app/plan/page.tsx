@@ -3,6 +3,10 @@ import { PlanSubscribeButton } from "@/components/PlanSubscribeButton";
 import { MembersOnlyBadge } from "@/components/MembersOnlyBadge";
 import { auth } from "@/lib/auth";
 import {
+  getFoundingMemberLimit,
+  getFoundingMemberSlotsRemaining,
+} from "@/lib/founding-members";
+import {
   getPlanName,
   getPlanPriceLabel,
   isPlanAccessActive,
@@ -107,6 +111,8 @@ export default async function PlanPage({
   const hasActivePlan = isPlanAccessActive(subscription);
   const priceLabel = getPlanPriceLabel();
   const stripeReady = isStripeConfigured();
+  const foundingRemaining = await getFoundingMemberSlotsRemaining();
+  const foundingLimit = getFoundingMemberLimit();
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-12 md:px-8">
@@ -123,6 +129,20 @@ export default async function PlanPage({
         shop. Anyone can still upload builds for free.
       </p>
 
+      {foundingRemaining > 0 ? (
+        <p className="mt-6 border border-brand-orange/40 bg-brand-orange/10 px-4 py-3 text-sm text-brand-orange">
+          Founding membership offer: the first {foundingLimit} people who join
+          the plan get their <span className="text-white">first month free</span>
+          . {foundingRemaining} spot{foundingRemaining === 1 ? "" : "s"} left.
+        </p>
+      ) : (
+        <p className="mt-6 border border-white/15 px-4 py-3 text-sm text-white/55">
+          The founding first-month-free offer ({foundingLimit} memberships) is
+          full. New members still unlock exclusive builds and MOC selling at the
+          regular monthly rate.
+        </p>
+      )}
+
       <ul className="mt-8 grid gap-4 sm:grid-cols-2">
         <li className="border border-white/15 px-4 py-4 text-sm text-white/70">
           <p className="font-semibold tracking-[0.08em] text-white">
@@ -138,9 +158,9 @@ export default async function PlanPage({
             SELL YOUR MOCS
           </p>
           <p className="mt-2">
-            Set a price when you submit. Members can always sell — and the first
-            30 accounts (Founding Creators) unlock selling free for life as a
-            cohort perk. Free uploads stay available either way.
+            Set a price when you submit. Membership unlocks selling so you can
+            profit from approved MOCs. Free uploads stay available without a
+            plan.
           </p>
         </li>
       </ul>
@@ -148,7 +168,11 @@ export default async function PlanPage({
       <div className="mt-8 flex flex-wrap items-end gap-6 border-y border-white/10 py-8">
         <div>
           <p className="font-display text-4xl text-brand-orange">{priceLabel}</p>
-          <p className="mt-1 text-sm text-white/50">Cancel anytime in billing</p>
+          <p className="mt-1 text-sm text-white/50">
+            {foundingRemaining > 0
+              ? "First month free for founding members"
+              : "Cancel anytime in billing"}
+          </p>
         </div>
         <div className="flex-1 min-w-[220px]">
           {stripeReady ? (
@@ -268,8 +292,10 @@ export default async function PlanPage({
 
       <p className="mt-10 max-w-2xl text-sm text-white/45">
         Members-only Badlands builds stay exclusive to subscribers. Membership
-        also unlocks selling your own community MOCs for a price — uploads
-        without a plan still publish as free builds after approval.
+        unlocks selling your own community MOCs. The first{" "}
+        {foundingLimit} people who join the plan get their first month free —
+        after that, standard monthly billing applies. Uploads without a plan
+        still publish as free builds after approval.
       </p>
     </div>
   );

@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import {
+  claimFoundingMemberSlot,
+  getFoundingTrialDays,
+} from "@/lib/founding-members";
+import {
   getPlanName,
   getPlanPriceCents,
   isPlanAccessActive,
@@ -41,6 +45,12 @@ export async function POST() {
     const priceId = process.env.STRIPE_PLAN_PRICE_ID?.trim();
     const priceCents = getPlanPriceCents();
 
+    // First 30 memberships claim a founding slot and get the first month free.
+    const foundingMemberNumber = await claimFoundingMemberSlot(
+      session.user.id,
+    );
+    const trialDays = foundingMemberNumber ? getFoundingTrialDays() : 0;
+
     let customerId = existing?.stripeCustomerId;
     if (!customerId) {
       const customers = await stripe.customers.list({
@@ -71,7 +81,7 @@ export async function POST() {
               product_data: {
                 name: getPlanName(),
                 description:
-                  "Monthly membership with exclusive Badlands members-only MOC builds.",
+                  "Monthly membership with exclusive Badlands members-only MOC builds and the ability to sell your MOCs.",
               },
             },
           },
@@ -82,9 +92,28 @@ export async function POST() {
       customer: customerId,
       client_reference_id: session.user.id,
       line_items: lineItems,
-      metadata: { userId: session.user.id, kind: "badlands_plan" },
+      metadata: {
+        userId: session.user.id,
+        kind: "badlands_plan",
+        ...(foundingMemberNumber
+          ? {
+              foundingMemberNumber: String(foundingMemberNumber),
+              firstMonthFree: "1",
+            }
+          : {}),
+      },
       subscription_data: {
-        metadata: { userId: session.user.id, kind: "badlands_plan" },
+        ...(trialDays > 0 ? { trial_period_days: trialDays } : {}),
+        metadata: {
+          userId: session.user.id,
+          kind: "badlands_plan",
+          ...(foundingMemberNumber
+            ? {
+                foundingMemberNumber: String(foundingMemberNumber),
+                firstMonthFree: "1",
+              }
+            : {}),
+        },
       },
       success_url: `${siteUrl}/plan?subscribed=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/plan?canceled=1`,
@@ -98,7 +127,11 @@ export async function POST() {
       );
     }
 
-    return NextResponse.json({ url: checkout.url });
+    return NextResponse.json({
+      url: checkout.url,
+      foundingMemberNumber,
+      firstMonthFree: Boolean(foundingMemberNumber),
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Checkout failed" }, { status: 500 });

@@ -1,6 +1,5 @@
 import type { PlanSubscription, Product } from "@prisma/client";
 import type Stripe from "stripe";
-import { isEarlyCreatorNumber } from "@/lib/early-creators";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/products";
 
@@ -44,46 +43,33 @@ export async function userHasPlanAccess(userId: string): Promise<boolean> {
   return isPlanAccessActive(sub);
 }
 
-/** Active Badlands Plan members or Founding Creators (first 30) can sell MOCs. */
+/** Active Badlands Plan members can list community MOCs for sale. */
 export async function canUserSellMocs(userId: string | null | undefined) {
-  const access = await getCreatorSellAccess(userId);
-  return access.canSell;
+  if (!userId) return false;
+  return userHasPlanAccess(userId);
 }
 
 export type CreatorSellAccess = {
   canSell: boolean;
-  reason: "membership" | "early_creator" | null;
-  earlyCreatorNumber: number | null;
+  reason: "membership" | null;
 };
 
 export async function getCreatorSellAccess(
   userId: string | null | undefined,
 ): Promise<CreatorSellAccess> {
   if (!userId) {
-    return { canSell: false, reason: null, earlyCreatorNumber: null };
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { earlyCreatorNumber: true },
-  });
-  if (isEarlyCreatorNumber(user?.earlyCreatorNumber)) {
-    return {
-      canSell: true,
-      reason: "early_creator",
-      earlyCreatorNumber: user.earlyCreatorNumber,
-    };
+    return { canSell: false, reason: null };
   }
 
   if (await userHasPlanAccess(userId)) {
-    return { canSell: true, reason: "membership", earlyCreatorNumber: null };
+    return { canSell: true, reason: "membership" };
   }
 
-  return { canSell: false, reason: null, earlyCreatorNumber: null };
+  return { canSell: false, reason: null };
 }
 
 /**
- * Paid listings require sell access (membership or Founding Creator).
+ * Paid listings require an active Badlands Plan membership.
  * Free listings (price 0) are always allowed. Staff can bypass the gate.
  */
 export async function resolveSellablePriceCents(input: {

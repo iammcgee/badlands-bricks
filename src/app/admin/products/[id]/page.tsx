@@ -93,9 +93,9 @@ export default async function AdminProductEditPage({
       ) : null}
       {query.error === "membership" ? (
         <p className="border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-300">
-          This community builder doesn&apos;t have sell access (Badlands Plan or
-          Founding Creator), so their MOC can&apos;t be listed for a paid price.
-          Keep it free, or ask them to join membership / claim a founding spot.
+          This community builder doesn&apos;t have an active Badlands Plan, so
+          their MOC can&apos;t be listed for a paid price. Keep it free, or ask
+          them to join membership to sell.
         </p>
       ) : null}
 
