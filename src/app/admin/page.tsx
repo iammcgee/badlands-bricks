@@ -101,7 +101,7 @@ export default async function AdminOverviewPage({
     { label: "Orders", value: orderCount, href: "/admin/ops#orders" },
     { label: "Messages", value: contactCount, href: "/admin/ops#messages" },
     { label: "Accounts", value: userCount, href: "/admin/team" },
-    { label: "Online now", value: onlineCount, href: "/admin/ops#system" },
+    { label: "Online now", value: onlineCount, href: "/admin/team" },
   ];
 
   return (
