@@ -3,17 +3,22 @@ import { redirect } from "next/navigation";
 import { SubmitMocForm } from "@/components/SubmitMocForm";
 import { auth } from "@/lib/auth";
 import { hasBlobStorage } from "@/lib/moc-files";
-import { canUserSellMocs, getPlanPriceLabel } from "@/lib/plan";
+import { getCreatorSellAccess, getPlanPriceLabel } from "@/lib/plan";
 
 export const metadata = { title: "SUBMIT YOUR MOCS" };
 
-export default async function SubmitMocsPage() {
+export default async function SubmitMocsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ founding?: string }>;
+}) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login?next=/submit-your-mocs");
   }
+  const query = await searchParams;
   const useBlobUploads = hasBlobStorage();
-  const canSell = await canUserSellMocs(session.user.id);
+  const sellAccess = await getCreatorSellAccess(session.user.id);
   const planPriceLabel = getPlanPriceLabel();
 
   return (
@@ -25,11 +30,28 @@ export default async function SubmitMocsPage() {
         <h1 className="mt-3 font-display text-5xl tracking-[0.08em] text-white md:text-6xl">
           SUBMIT YOUR MOC
         </h1>
+        {query.founding ? (
+          <p className="mt-4 border border-brand-orange/40 bg-brand-orange/10 px-4 py-3 text-sm text-brand-orange">
+            Welcome, Founding Creator #{query.founding}. You can list MOCs for
+            sale without a paid membership — one of the first 30 accounts on
+            Badlands Bricks.
+          </p>
+        ) : null}
         <p className="mt-4 text-white/70">
           Upload your photos, drag them into the right order, and we&apos;ll
           turn your instruction steps into a clean PDF — right here, no Adobe
           needed. Submitting is free for everyone.{" "}
-          {canSell ? (
+          {sellAccess.reason === "early_creator" ? (
+            <>
+              You&apos;re{" "}
+              <span className="text-white">
+                Founding Creator #{sellAccess.earlyCreatorNumber}
+              </span>
+              , so you can also{" "}
+              <span className="text-white">list MOCs for sale</span> and profit
+              when shoppers buy your instructions.
+            </>
+          ) : sellAccess.reason === "membership" ? (
             <>
               Your Badlands Plan is active, so you can also{" "}
               <span className="text-white">list MOCs for sale</span> and profit
@@ -41,7 +63,8 @@ export default async function SubmitMocsPage() {
               <Link href="/plan" className="text-brand-orange hover:underline">
                 Join the Badlands Plan
               </Link>{" "}
-              ({planPriceLabel}) to unlock paid listings.
+              ({planPriceLabel}) to unlock paid listings — or grab a Founding
+              Creator spot while the first 30 accounts are still open.
             </>
           )}
         </p>
@@ -68,7 +91,9 @@ export default async function SubmitMocsPage() {
         <SubmitMocForm
           mode="user"
           useBlobUploads={useBlobUploads}
-          canSell={canSell}
+          canSell={sellAccess.canSell}
+          sellReason={sellAccess.reason}
+          earlyCreatorNumber={sellAccess.earlyCreatorNumber}
           planPriceLabel={planPriceLabel}
         />
       </div>

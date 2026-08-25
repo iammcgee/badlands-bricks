@@ -138,8 +138,9 @@ export default async function PlanPage({
             SELL YOUR MOCS
           </p>
           <p className="mt-2">
-            Set a price when you submit. After approval, shoppers can buy your
-            instructions — free uploads stay available without a plan.
+            Set a price when you submit. Members can always sell — and the first
+            30 accounts (Founding Creators) unlock selling free for life as a
+            cohort perk. Free uploads stay available either way.
           </p>
         </li>
       </ul>

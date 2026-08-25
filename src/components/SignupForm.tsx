@@ -29,7 +29,11 @@ export function SignupForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = (await response.json()) as { error?: string };
+      const data = (await response.json()) as {
+        error?: string;
+        earlyCreator?: boolean;
+        earlyCreatorNumber?: number | null;
+      };
       if (!response.ok) throw new Error(data.error || "Signup failed");
 
       const result = await signIn("credentials", {
@@ -39,7 +43,13 @@ export function SignupForm() {
       });
       if (result?.error) throw new Error("Account created, but login failed");
 
-      router.push(next);
+      if (data.earlyCreator && data.earlyCreatorNumber) {
+        router.push(
+          `/submit-your-mocs?founding=${data.earlyCreatorNumber}`,
+        );
+      } else {
+        router.push(next);
+      }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed");

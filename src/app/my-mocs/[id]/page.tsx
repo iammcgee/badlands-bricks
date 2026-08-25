@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { mocStatusClass, mocStatusLabel } from "@/lib/moc-review";
-import { canUserSellMocs } from "@/lib/plan";
+import { getCreatorSellAccess } from "@/lib/plan";
 import { formatPrice } from "@/lib/products";
 import { prisma } from "@/lib/prisma";
 
@@ -45,7 +45,7 @@ export default async function MyMocDetailPage({
     submission.builderEmail.toLowerCase() === email;
   if (!owned) notFound();
 
-  const canSell = await canUserSellMocs(session.user.id);
+  const sellAccess = await getCreatorSellAccess(session.user.id);
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-12 md:px-8">
@@ -83,13 +83,19 @@ export default async function MyMocDetailPage({
               ? `Requested sale price ${formatPrice(submission.requestedPriceCents)} (pending review)`
               : "Free upload"}
         </p>
-        {!canSell ? (
+        {!sellAccess.canSell ? (
           <p className="border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60">
             Want to sell this MOC for profit?{" "}
             <Link href="/plan" className="text-brand-orange hover:underline">
               Join Badlands Plan
             </Link>{" "}
-            to unlock paid listings. Uploading stays free either way.
+            to unlock paid listings, or sign up early for a Founding Creator
+            spot (first 30 accounts). Uploading stays free either way.
+          </p>
+        ) : sellAccess.reason === "early_creator" ? (
+          <p className="border border-brand-orange/30 bg-brand-orange/5 px-3 py-2 text-xs text-brand-orange">
+            Founding Creator #{sellAccess.earlyCreatorNumber} — you can list
+            MOCs for sale without a paid membership.
           </p>
         ) : null}
         {submission.youtubeUrl ? (
