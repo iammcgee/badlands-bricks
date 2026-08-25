@@ -43,6 +43,38 @@ export async function userHasPlanAccess(userId: string): Promise<boolean> {
   return isPlanAccessActive(sub);
 }
 
+/** Active Badlands Plan members can list community MOCs for sale. */
+export async function canUserSellMocs(userId: string | null | undefined) {
+  if (!userId) return false;
+  return userHasPlanAccess(userId);
+}
+
+/**
+ * Paid listings require an active membership on the submitter.
+ * Free listings (price 0) are always allowed. Staff can bypass the gate.
+ */
+export async function resolveSellablePriceCents(input: {
+  requestedPriceCents?: number | null;
+  submitterUserId?: string | null;
+  allowWithoutMembership?: boolean;
+}): Promise<{ priceCents: number; canSell: boolean; clamped: boolean }> {
+  const requested = Math.max(0, Math.round(Number(input.requestedPriceCents) || 0));
+  if (requested <= 0) {
+    return { priceCents: 0, canSell: true, clamped: false };
+  }
+
+  if (input.allowWithoutMembership) {
+    return { priceCents: requested, canSell: true, clamped: false };
+  }
+
+  const canSell = await canUserSellMocs(input.submitterUserId);
+  if (canSell) {
+    return { priceCents: requested, canSell: true, clamped: false };
+  }
+
+  return { priceCents: 0, canSell: false, clamped: true };
+}
+
 export function periodEndFromStripe(
   subscription: Stripe.Subscription,
 ): Date | null {

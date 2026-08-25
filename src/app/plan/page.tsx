@@ -115,13 +115,34 @@ export default async function PlanPage({
         {getPlanName().toUpperCase()}
       </h1>
       <p className="mt-4 max-w-2xl text-lg leading-relaxed text-white/70">
-        Exclusive builds delivered only to members. Join the plan for monthly
-        access to members-only MOCs — starting with{" "}
+        Join Badlands Plan for exclusive members-only builds — starting with{" "}
         <span className="text-white">Max Flex</span>,{" "}
         <span className="text-white">Bee Buggy</span>, and{" "}
-        <span className="text-white">Trophy Truck</span>. These are not sold
-        individually.
+        <span className="text-white">Trophy Truck</span> — and unlock the
+        ability to <span className="text-white">sell your own MOCs</span> in the
+        shop. Anyone can still upload builds for free.
       </p>
+
+      <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+        <li className="border border-white/15 px-4 py-4 text-sm text-white/70">
+          <p className="font-semibold tracking-[0.08em] text-white">
+            MEMBERS-ONLY BUILDS
+          </p>
+          <p className="mt-2">
+            Download exclusive Badlands instruction sets while your plan is
+            active.
+          </p>
+        </li>
+        <li className="border border-brand-orange/40 bg-brand-orange/5 px-4 py-4 text-sm text-white/70">
+          <p className="font-semibold tracking-[0.08em] text-brand-orange">
+            SELL YOUR MOCS
+          </p>
+          <p className="mt-2">
+            Set a price when you submit. After approval, shoppers can buy your
+            instructions — free uploads stay available without a plan.
+          </p>
+        </li>
+      </ul>
 
       <div className="mt-8 flex flex-wrap items-end gap-6 border-y border-white/10 py-8">
         <div>

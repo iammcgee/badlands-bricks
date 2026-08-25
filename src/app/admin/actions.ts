@@ -242,7 +242,12 @@ export async function updateProductAction(formData: FormData) {
     redirect(`/admin/products/${id}?error=youtube`);
   }
 
-  const existing = await prisma.product.findUnique({ where: { id } });
+  const existing = await prisma.product.findUnique({
+    where: { id },
+    include: {
+      mocSubmission: { select: { submitterUserId: true } },
+    },
+  });
   if (!existing) redirect("/admin/products?error=missing");
 
   const slugTaken = await prisma.product.findFirst({
@@ -253,6 +258,19 @@ export async function updateProductAction(formData: FormData) {
     redirect(`/admin/products/${id}?error=slug`);
   }
 
+  let priceCents = Math.round(priceUsd * 100);
+  if (priceCents > 0 && existing.mocSubmission?.submitterUserId) {
+    const { resolveSellablePriceCents } = await import("@/lib/plan");
+    const resolved = await resolveSellablePriceCents({
+      requestedPriceCents: priceCents,
+      submitterUserId: existing.mocSubmission.submitterUserId,
+    });
+    if (resolved.clamped) {
+      redirect(`/admin/products/${id}?error=membership`);
+    }
+    priceCents = resolved.priceCents;
+  }
+
   const updated = await prisma.product.update({
     where: { id },
     data: {
@@ -261,7 +279,7 @@ export async function updateProductAction(formData: FormData) {
       description,
       youtubeUrl: normalizeYoutubeUrl(youtubeRaw),
       creatorId,
-      priceCents: Math.round(priceUsd * 100),
+      priceCents,
       isActive,
       includedInPlan,
     },

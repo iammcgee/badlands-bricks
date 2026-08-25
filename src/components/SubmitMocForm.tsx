@@ -20,17 +20,24 @@ type SubmitMocFormProps = {
   mode?: "user" | "admin";
   /** When true, files go to Vercel Blob (required for reliable production submits). */
   useBlobUploads?: boolean;
+  /** Active Badlands Plan members can request a sale price. */
+  canSell?: boolean;
+  planPriceLabel?: string;
 };
 
 export function SubmitMocForm({
   mode = "user",
   useBlobUploads = false,
+  canSell = false,
+  planPriceLabel = "$9.99/mo",
 }: SubmitMocFormProps) {
   const { data: session, status: sessionStatus } = useSession();
   const isAdmin = mode === "admin";
   const [mocName, setMocName] = useState("");
   const [theme, setTheme] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [priceUsd, setPriceUsd] = useState("");
+  const [wantToSell, setWantToSell] = useState(false);
   const [adminStatus, setAdminStatus] = useState("approved");
   const [photos, setPhotos] = useState<MocMediaItem[]>([]);
   const [steps, setSteps] = useState<MocMediaItem[]>([]);
@@ -178,6 +185,10 @@ export function SubmitMocForm({
           onProgress: setMessage,
         });
         setMessage("Saving submission…");
+        const sellPrice =
+          !isAdmin && canSell && wantToSell && priceUsd.trim()
+            ? priceUsd.trim()
+            : undefined;
         response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -186,6 +197,7 @@ export function SubmitMocForm({
             theme: theme.trim(),
             youtubeUrl: youtubeUrl.trim() || undefined,
             status: isAdmin ? adminStatus : undefined,
+            priceUsd: sellPrice,
             photoUrls: assets.photoUrls,
             instructionUrls: assets.instructionUrls,
             pdfUrl: assets.pdfUrl,
@@ -197,6 +209,9 @@ export function SubmitMocForm({
         data.set("theme", theme.trim());
         if (youtubeUrl.trim()) data.set("youtubeUrl", youtubeUrl.trim());
         if (isAdmin) data.set("status", adminStatus);
+        if (!isAdmin && canSell && wantToSell && priceUsd.trim()) {
+          data.set("priceUsd", priceUsd.trim());
+        }
 
         photos.forEach((item, index) => {
           const named = new File(
@@ -251,6 +266,8 @@ export function SubmitMocForm({
       setMocName("");
       setTheme("");
       setYoutubeUrl("");
+      setPriceUsd("");
+      setWantToSell(false);
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Submit failed");
@@ -335,6 +352,64 @@ export function SubmitMocForm({
             embed it on your Build page — no giant video uploads needed.
           </span>
         </label>
+        {!isAdmin ? (
+          <div className="space-y-3 border border-white/15 bg-black/40 p-4 md:col-span-2">
+            <p className="text-sm font-semibold tracking-[0.08em] text-white">
+              SELL YOUR MOC
+            </p>
+            {canSell ? (
+              <>
+                <label className="flex items-center gap-2 text-sm text-white/75">
+                  <input
+                    type="checkbox"
+                    checked={wantToSell}
+                    onChange={(event) => setWantToSell(event.target.checked)}
+                  />
+                  List this MOC for sale if it&apos;s approved
+                </label>
+                {wantToSell ? (
+                  <label className="block space-y-2">
+                    <span className="text-sm text-white">Sale price (USD)</span>
+                    <input
+                      value={priceUsd}
+                      onChange={(event) => setPriceUsd(event.target.value)}
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      placeholder="9.99"
+                      required={wantToSell}
+                      className="w-full border border-white/25 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-brand-orange"
+                    />
+                    <span className="block text-xs text-white/45">
+                      Membership perk unlocked — set what shoppers pay for your
+                      instructions. Leave unchecked to publish as a free build.
+                    </span>
+                  </label>
+                ) : (
+                  <p className="text-xs text-white/45">
+                    You can still upload for free. Check the box above when you
+                    want to profit from this MOC.
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="space-y-2 text-sm text-white/70">
+                <p>
+                  Anyone can upload MOCs for free.{" "}
+                  <span className="text-white">
+                    Selling (setting a price) is a Badlands Plan membership perk.
+                  </span>
+                </p>
+                <Link
+                  href="/plan"
+                  className="inline-flex bg-brand-orange px-4 py-2 text-xs font-bold tracking-[0.14em] text-white hover:bg-orange-500"
+                >
+                  JOIN MEMBERSHIP · {planPriceLabel}
+                </Link>
+              </div>
+            )}
+          </div>
+        ) : null}
         {isAdmin ? (
           <label className="block space-y-2 md:col-span-2">
             <span className="text-sm text-white">Status</span>
