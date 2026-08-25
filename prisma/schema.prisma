@@ -13,8 +13,8 @@ model User {
   passwordHash        String
   name                String
   role                String            @default("user")
-  /** 1..N founding cohort slot; unlocks selling MOCs without a paid plan. */
-  earlyCreatorNumber  Int?              @unique
+  /** 1..N founding membership slot; first month free on Badlands Plan. */
+  foundingMemberNumber Int?              @unique
   avatarMime          String?
   avatarData          Bytes?
   createdAt           DateTime          @default(now())
