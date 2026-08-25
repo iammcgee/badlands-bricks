@@ -8,6 +8,8 @@ import {
   mocStatusLabel,
   parseJsonStringArray,
 } from "@/lib/moc-review";
+import { canUserSellMocs } from "@/lib/plan";
+import { formatPrice } from "@/lib/products";
 import { prisma } from "@/lib/prisma";
 
 function fileHref(path: string) {
@@ -69,10 +71,17 @@ export default async function AdminMocDetailPage({
 
   const photos = parseJsonStringArray(submission.photoPathsJson);
   const instructions = parseJsonStringArray(submission.instructionPathsJson);
+  const submitterCanSell = await canUserSellMocs(submission.submitterUserId);
+  const requestedPrice =
+    submission.requestedPriceCents != null && submission.requestedPriceCents > 0
+      ? formatPrice(submission.requestedPriceCents)
+      : null;
   const existingPrice =
     submission.product?.priceCents != null
       ? (submission.product.priceCents / 100).toFixed(2)
-      : "0";
+      : requestedPrice
+        ? (submission.requestedPriceCents! / 100).toFixed(2)
+        : "0";
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-10 md:px-8">
@@ -147,6 +156,24 @@ export default async function AdminMocDetailPage({
           </p>
           <p>
             <span className="text-white/50">Theme:</span> {submission.theme}
+          </p>
+          <p>
+            <span className="text-white/50">Sell request:</span>{" "}
+            {requestedPrice ? (
+              <span className="text-brand-orange">{requestedPrice}</span>
+            ) : (
+              "Free listing"
+            )}
+          </p>
+          <p>
+            <span className="text-white/50">Membership sell access:</span>{" "}
+            {submitterCanSell ? (
+              <span className="text-green-400">Active — can sell</span>
+            ) : (
+              <span className="text-white/70">
+                Not a member — paid price will publish as free
+              </span>
+            )}
           </p>
           {submission.youtubeUrl ? (
             <p>
@@ -253,8 +280,9 @@ export default async function AdminMocDetailPage({
                 className="w-full border border-white/20 bg-black px-3 py-2 text-white outline-none focus:border-brand-orange"
               />
               <span className="block text-xs text-white/45">
-                Approving publishes this MOC to Build with likes, cart, and the
-                builder as creator. Use 0 for free.
+                Approving publishes this MOC to Build. Paid prices only stick if
+                the builder has an active Badlands Plan; otherwise the shop
+                price is forced to free. Use 0 for a free listing.
               </span>
             </label>
             <label className="block space-y-2 text-sm">

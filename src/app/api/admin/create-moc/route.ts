@@ -137,6 +137,7 @@ export async function POST(request: Request) {
     if (status === "approved") {
       const product = await publishApprovedMocToBuild(submission, {
         priceCents: 0,
+        allowWithoutMembership: true,
       });
       productSlug = product.slug;
     }

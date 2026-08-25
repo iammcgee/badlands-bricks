@@ -5,10 +5,18 @@ import {
   createUserMocSubmission,
   parseUrlList,
 } from "@/lib/moc-submit";
+import { canUserSellMocs } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { isValidYoutubeUrl, normalizeYoutubeUrl } from "@/lib/youtube";
 
 export const runtime = "nodejs";
+
+function parseRequestedPriceCents(raw: unknown): number {
+  if (raw == null || raw === "") return 0;
+  const usd = Number.parseFloat(String(raw));
+  if (!Number.isFinite(usd) || usd < 0) return 0;
+  return Math.round(usd * 100);
+}
 
 export async function POST(request: Request) {
   try {
@@ -34,11 +42,13 @@ export async function POST(request: Request) {
     const builderName = user.name?.trim() || user.email.split("@")[0];
     const builderEmail = user.email.toLowerCase();
     const contentType = request.headers.get("content-type") || "";
+    const canSell = await canUserSellMocs(user.id);
 
     let mocName = "";
     let theme = "";
     let notes = "";
     let youtubeRaw = "";
+    let requestedPriceCents = 0;
     let photoPaths: string[] = [];
     let instructionPaths: string[] = [];
     let pdfPaths: string[] = [];
@@ -50,6 +60,7 @@ export async function POST(request: Request) {
         theme?: string;
         notes?: string;
         youtubeUrl?: string;
+        priceUsd?: string | number;
         photoUrls?: unknown;
         instructionUrls?: unknown;
         pdfUrl?: string | null;
@@ -58,6 +69,7 @@ export async function POST(request: Request) {
       theme = String(body.theme || "").trim();
       notes = String(body.notes || "").trim();
       youtubeRaw = String(body.youtubeUrl || "").trim();
+      requestedPriceCents = parseRequestedPriceCents(body.priceUsd);
       photoPaths = parseUrlList(body.photoUrls);
       instructionPaths = parseUrlList(body.instructionUrls);
       const pdfUrl =
@@ -79,6 +91,7 @@ export async function POST(request: Request) {
       theme = String(form.get("theme") || "").trim();
       notes = String(form.get("notes") || "").trim();
       youtubeRaw = String(form.get("youtubeUrl") || "").trim();
+      requestedPriceCents = parseRequestedPriceCents(form.get("priceUsd"));
 
       const uploaded = await persistMocUploads(form);
       if ("error" in uploaded) {
@@ -104,6 +117,16 @@ export async function POST(request: Request) {
       );
     }
 
+    if (requestedPriceCents > 0 && !canSell) {
+      return NextResponse.json(
+        {
+          error:
+            "Selling MOCs requires an active Badlands Plan membership. Upload for free, or join membership to set a price.",
+        },
+        { status: 403 },
+      );
+    }
+
     const submission = await createUserMocSubmission({
       userId: user.id,
       builderName,
@@ -112,6 +135,7 @@ export async function POST(request: Request) {
       theme,
       notes,
       youtubeUrl: normalizeYoutubeUrl(youtubeRaw),
+      requestedPriceCents: canSell ? requestedPriceCents : 0,
       photoPaths,
       instructionPaths,
       pdfPaths,

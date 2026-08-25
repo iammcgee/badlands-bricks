@@ -148,6 +148,8 @@ model MocSubmission {
   instructionPathsJson String          @default("[]")
   notes                String?
   youtubeUrl           String?
+  /** Builder-requested shop price in cents (sellable only with active membership). */
+  requestedPriceCents  Int?
   status               String          @default("new")
   reviewedAt           DateTime?
   reviewedByUserId     String?

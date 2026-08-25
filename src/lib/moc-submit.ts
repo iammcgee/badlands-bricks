@@ -9,6 +9,7 @@ export async function createUserMocSubmission(input: {
   theme: string;
   notes?: string | null;
   youtubeUrl?: string | null;
+  requestedPriceCents?: number | null;
   photoPaths: string[];
   instructionPaths: string[];
   pdfPaths: string[];
@@ -23,6 +24,11 @@ export async function createUserMocSubmission(input: {
       submitterUserId: input.userId,
       notes: input.notes || null,
       youtubeUrl: input.youtubeUrl || null,
+      requestedPriceCents:
+        typeof input.requestedPriceCents === "number" &&
+        input.requestedPriceCents > 0
+          ? Math.round(input.requestedPriceCents)
+          : null,
       photoPathsJson: JSON.stringify(input.photoPaths),
       instructionPathsJson: JSON.stringify([
         ...input.instructionPaths,
@@ -32,9 +38,14 @@ export async function createUserMocSubmission(input: {
     },
   });
 
+  const priceLabel =
+    submission.requestedPriceCents && submission.requestedPriceCents > 0
+      ? `$${(submission.requestedPriceCents / 100).toFixed(2)} (sell request)`
+      : "Free listing";
+
   await sendNotificationEmail({
     subject: `New MOC submission: ${input.mocName}`,
-    text: `Builder: ${input.builderName} <${input.builderEmail}>\nTheme: ${input.theme}\nYouTube: ${input.youtubeUrl || "(none)"}\nNotes: ${input.notes || "(none)"}\nPhotos: ${input.photoPaths.length}\nInstruction steps: ${input.instructionCount}\nPDF: ${input.pdfPaths[0] || "(none)"}\nSubmission ID: ${submission.id}\nReview: /admin/mocs/${submission.id}`,
+    text: `Builder: ${input.builderName} <${input.builderEmail}>\nTheme: ${input.theme}\nYouTube: ${input.youtubeUrl || "(none)"}\nRequested price: ${priceLabel}\nNotes: ${input.notes || "(none)"}\nPhotos: ${input.photoPaths.length}\nInstruction steps: ${input.instructionCount}\nPDF: ${input.pdfPaths[0] || "(none)"}\nSubmission ID: ${submission.id}\nReview: /admin/mocs/${submission.id}`,
   });
 
   await sendNotificationEmail({

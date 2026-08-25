@@ -1,6 +1,7 @@
 import type { MocSubmission, Product } from "@prisma/client";
 import { isRemoteMocPath } from "@/lib/moc-files";
 import { parseJsonStringArray } from "@/lib/moc-review";
+import { resolveSellablePriceCents } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 
 function slugify(value: string) {
@@ -81,7 +82,7 @@ export function shopPdfFromSubmission(submission: MocSubmission): string | null 
 
 export async function publishApprovedMocToBuild(
   submission: MocSubmission,
-  options?: { priceCents?: number },
+  options?: { priceCents?: number; allowWithoutMembership?: boolean },
 ): Promise<Product> {
   const creator = await ensureCreatorForBuilder({
     builderName: submission.builderName,
@@ -95,10 +96,16 @@ export async function publishApprovedMocToBuild(
     where: { mocSubmissionId: submission.id },
   });
 
-  const priceCents =
+  const requested =
     typeof options?.priceCents === "number" && options.priceCents >= 0
       ? Math.round(options.priceCents)
-      : existing?.priceCents ?? 0;
+      : submission.requestedPriceCents ?? existing?.priceCents ?? 0;
+
+  const { priceCents } = await resolveSellablePriceCents({
+    requestedPriceCents: requested,
+    submitterUserId: submission.submitterUserId,
+    allowWithoutMembership: options?.allowWithoutMembership,
+  });
 
   const description = [
     submission.theme ? `Theme: ${submission.theme}.` : "",

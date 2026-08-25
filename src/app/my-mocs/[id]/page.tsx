@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { mocStatusClass, mocStatusLabel } from "@/lib/moc-review";
+import { canUserSellMocs } from "@/lib/plan";
+import { formatPrice } from "@/lib/products";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +34,7 @@ export default async function MyMocDetailPage({
     where: { id },
     include: {
       reviewNotes: { orderBy: { createdAt: "desc" } },
-      product: { select: { slug: true, isActive: true } },
+      product: { select: { slug: true, isActive: true, priceCents: true } },
     },
   });
 
@@ -42,6 +44,8 @@ export default async function MyMocDetailPage({
     submission.submitterUserId === session.user.id ||
     submission.builderEmail.toLowerCase() === email;
   if (!owned) notFound();
+
+  const canSell = await canUserSellMocs(session.user.id);
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-12 md:px-8">
@@ -69,6 +73,25 @@ export default async function MyMocDetailPage({
         <p>
           <span className="text-white/45">Theme:</span> {submission.theme}
         </p>
+        <p>
+          <span className="text-white/45">Listing:</span>{" "}
+          {submission.product?.isActive
+            ? submission.product.priceCents > 0
+              ? `For sale · ${formatPrice(submission.product.priceCents)}`
+              : "Free in Build"
+            : submission.requestedPriceCents && submission.requestedPriceCents > 0
+              ? `Requested sale price ${formatPrice(submission.requestedPriceCents)} (pending review)`
+              : "Free upload"}
+        </p>
+        {!canSell ? (
+          <p className="border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60">
+            Want to sell this MOC for profit?{" "}
+            <Link href="/plan" className="text-brand-orange hover:underline">
+              Join Badlands Plan
+            </Link>{" "}
+            to unlock paid listings. Uploading stays free either way.
+          </p>
+        ) : null}
         {submission.youtubeUrl ? (
           <p>
             <span className="text-white/45">YouTube:</span>{" "}

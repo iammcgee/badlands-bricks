@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { SubmitMocForm } from "@/components/SubmitMocForm";
 import { auth } from "@/lib/auth";
 import { hasBlobStorage } from "@/lib/moc-files";
+import { canUserSellMocs, getPlanPriceLabel } from "@/lib/plan";
 
 export const metadata = { title: "SUBMIT YOUR MOCS" };
 
@@ -12,6 +13,8 @@ export default async function SubmitMocsPage() {
     redirect("/login?next=/submit-your-mocs");
   }
   const useBlobUploads = hasBlobStorage();
+  const canSell = await canUserSellMocs(session.user.id);
+  const planPriceLabel = getPlanPriceLabel();
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-12 md:px-8">
@@ -25,11 +28,29 @@ export default async function SubmitMocsPage() {
         <p className="mt-4 text-white/70">
           Upload your photos, drag them into the right order, and we&apos;ll
           turn your instruction steps into a clean PDF — right here, no Adobe
-          needed. You&apos;re signed in as{" "}
+          needed. Submitting is free for everyone.{" "}
+          {canSell ? (
+            <>
+              Your Badlands Plan is active, so you can also{" "}
+              <span className="text-white">list MOCs for sale</span> and profit
+              when shoppers buy your instructions.
+            </>
+          ) : (
+            <>
+              Want to sell your builds?{" "}
+              <Link href="/plan" className="text-brand-orange hover:underline">
+                Join the Badlands Plan
+              </Link>{" "}
+              ({planPriceLabel}) to unlock paid listings.
+            </>
+          )}
+        </p>
+        <p className="mt-3 text-sm text-white/50">
+          Signed in as{" "}
           <span className="text-white">
             {session.user.name || session.user.email}
           </span>
-          , so we already have your name and email. Track approval under{" "}
+          . Track approval under{" "}
           <Link href="/my-mocs" className="text-brand-orange hover:underline">
             My MOCs
           </Link>
@@ -44,7 +65,12 @@ export default async function SubmitMocsPage() {
         </p>
       ) : null}
       <div className="mt-10">
-        <SubmitMocForm mode="user" useBlobUploads={useBlobUploads} />
+        <SubmitMocForm
+          mode="user"
+          useBlobUploads={useBlobUploads}
+          canSell={canSell}
+          planPriceLabel={planPriceLabel}
+        />
       </div>
     </div>
   );
