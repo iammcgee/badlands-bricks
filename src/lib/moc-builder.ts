@@ -4,8 +4,31 @@ export type MocMediaItem = {
   previewUrl: string;
 };
 
+/**
+ * iPad/iPhone multi-select often returns FileList in a scrambled or reverse
+ * order. Re-sort so numbered filenames (IMG_2, IMG_10) and capture time stay
+ * sequential — matching how builders usually organize albums.
+ */
+export function sortSelectedImageFiles(files: File[]): File[] {
+  return [...files].sort((a, b) => {
+    const byName = naturalFileNameCompare(a.name, b.name);
+    if (byName !== 0) return byName;
+    if (a.lastModified !== b.lastModified) {
+      return a.lastModified - b.lastModified;
+    }
+    return a.size - b.size;
+  });
+}
+
+function naturalFileNameCompare(left: string, right: string) {
+  return left.localeCompare(right, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
 export function createMediaItems(fileList: FileList | File[]): MocMediaItem[] {
-  return Array.from(fileList)
+  return sortSelectedImageFiles(Array.from(fileList))
     .filter((file) => file.type.startsWith("image/"))
     .map((file) => ({
       id: `${file.name}-${file.size}-${crypto.randomUUID()}`,

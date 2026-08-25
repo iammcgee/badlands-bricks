@@ -428,7 +428,7 @@ export function SubmitMocForm({
 
       <ImageOrganizer
         title="1. SHOWCASE PHOTOS"
-        hint="These are the hero shots of your finished MOC. Drag cards or use Up/Down to set the order."
+        hint="These are the hero shots of your finished MOC. Multi-select keeps numbered / capture order — drag cards or use Up/Down only if you need a tweak."
         emptyLabel="Add clear photos of your finished build."
         items={photos}
         onChange={setPhotos}
@@ -436,7 +436,7 @@ export function SubmitMocForm({
 
       <ImageOrganizer
         title="2. INSTRUCTION STEPS"
-        hint="Upload each build step as a photo, then put them in the exact order kids should follow."
+        hint="Upload build-step photos in order. On iPad, select them all at once — we keep file-name and capture order so you usually don’t need to reshuffle."
         emptyLabel="Add instruction step photos in order — step 1, step 2, and so on."
         items={steps}
         onChange={(next) => {
