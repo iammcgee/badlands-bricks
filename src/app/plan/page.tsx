@@ -266,10 +266,9 @@ export default async function PlanPage({
       </section>
 
       <p className="mt-10 max-w-2xl text-sm text-white/45">
-        Members-only builds are never sold in the cart. Join the Badlands Plan
-        to unlock every exclusive MOC in the membership — and keep access while
-        your subscription stays active. Other catalog builds can still be
-        purchased individually.
+        Members-only Badlands builds stay exclusive to subscribers. Membership
+        also unlocks selling your own community MOCs for a price — uploads
+        without a plan still publish as free builds after approval.
       </p>
     </div>
   );
