@@ -7,6 +7,7 @@ import {
   isImageFile,
   moveMediaItem,
   normalizeMocImageFile,
+  sortSelectedImageFiles,
 } from "@/lib/moc-builder";
 
 export function ImageOrganizer({
@@ -31,8 +32,11 @@ export function ImageOrganizer({
     setBusy(true);
     setError("");
     try {
+      // Preserve album / numbered order — browsers (especially iPad) scramble
+      // multi-select FileList order.
+      const ordered = sortSelectedImageFiles(Array.from(fileList));
       const incoming: MocMediaItem[] = [];
-      for (const file of Array.from(fileList)) {
+      for (const file of ordered) {
         if (!isImageFile(file)) continue;
         const normalized = await normalizeMocImageFile(file);
         incoming.push({
@@ -95,7 +99,7 @@ export function ImageOrganizer({
         <p className="text-xs text-white/50">
           {items.length} file{items.length === 1 ? "" : "s"} ·{" "}
           {formatBytes(items.reduce((sum, item) => sum + item.file.size, 0))}{" "}
-          total
+          total · kept in name / capture order (drag to tweak)
         </p>
       ) : null}
 
