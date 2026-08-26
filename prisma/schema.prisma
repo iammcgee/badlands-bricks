@@ -183,3 +183,14 @@ model ContactMessage {
   message   String
   createdAt DateTime @default(now())
 }
+
+/** In-portal alerts for staff (e.g. new signups). */
+model AdminNotification {
+  id        String    @id @default(cuid())
+  type      String
+  title     String
+  body      String
+  href      String?
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+}
