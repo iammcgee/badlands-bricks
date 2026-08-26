@@ -2,7 +2,12 @@ import Link from "next/link";
 import { adminPasswordLoginAction } from "@/app/admin/actions";
 import { getAdminAccess } from "@/lib/admin";
 import { auth } from "@/lib/auth";
+import {
+  countFoundingMembers,
+  getFoundingMemberLimit,
+} from "@/lib/founding-members";
 import { mocStatusClass, mocStatusLabel } from "@/lib/moc-review";
+import { PLAN_ACCESS_STATUSES } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/products";
 
@@ -62,6 +67,7 @@ export default async function AdminOverviewPage({
   }
 
   const since = new Date(Date.now() - 2 * 60 * 1000);
+  const planStatuses = [...PLAN_ACCESS_STATUSES];
   const [
     pendingMocs,
     approvedMocs,
@@ -70,6 +76,8 @@ export default async function AdminOverviewPage({
     orderCount,
     contactCount,
     userCount,
+    memberCount,
+    foundingCount,
     onlineCount,
     unreadAlerts,
     recentMocs,
@@ -82,6 +90,10 @@ export default async function AdminOverviewPage({
     prisma.order.count(),
     prisma.contactMessage.count(),
     prisma.user.count(),
+    prisma.planSubscription.count({
+      where: { status: { in: planStatuses } },
+    }),
+    countFoundingMembers(),
     prisma.presenceSession.count({ where: { lastSeenAt: { gte: since } } }),
     prisma.adminNotification.count({ where: { readAt: null } }),
     prisma.mocSubmission.findMany({
@@ -95,6 +107,8 @@ export default async function AdminOverviewPage({
     }),
   ]);
 
+  const foundingLimit = getFoundingMemberLimit();
+
   const cards = [
     { label: "Pending MOCs", value: pendingMocs, href: "/admin/mocs?status=new" },
     { label: "Needs changes", value: needsChanges, href: "/admin/mocs?status=needs_changes" },
@@ -102,7 +116,6 @@ export default async function AdminOverviewPage({
     { label: "Denied MOCs", value: deniedMocs, href: "/admin/mocs?status=denied" },
     { label: "Orders", value: orderCount, href: "/admin/ops#orders" },
     { label: "Messages", value: contactCount, href: "/admin/ops#messages" },
-    { label: "Accounts", value: userCount, href: "/admin/team" },
     { label: "Unread alerts", value: unreadAlerts, href: "/admin/notifications" },
     { label: "Online now", value: onlineCount, href: "/admin/team" },
   ];
@@ -117,6 +130,66 @@ export default async function AdminOverviewPage({
           Snapshot of submissions, shop activity, and live presence.
         </p>
       </div>
+
+      <section className="border border-brand-orange/35 bg-brand-orange/5 p-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="font-display text-2xl text-white">
+              People & membership
+            </h2>
+            <p className="mt-1 text-sm text-white/55">
+              Everyone who signed up, plus active Badlands Plan subscribers.
+            </p>
+          </div>
+          <Link
+            href="/admin/team"
+            className="text-xs tracking-[0.12em] text-brand-orange hover:underline"
+          >
+            VIEW ALL ACCOUNTS →
+          </Link>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <Link
+            href="/admin/team"
+            className="border border-white/15 bg-black/40 px-4 py-4 transition hover:border-brand-orange"
+          >
+            <p className="text-xs tracking-[0.14em] text-white/50">
+              JOINED BADLANDS
+            </p>
+            <p className="mt-2 font-display text-4xl text-white">{userCount}</p>
+            <p className="mt-1 text-xs text-white/45">Total accounts signed up</p>
+          </Link>
+          <Link
+            href="/admin/team?access=members"
+            className="border border-white/15 bg-black/40 px-4 py-4 transition hover:border-brand-orange"
+          >
+            <p className="text-xs tracking-[0.14em] text-white/50">
+              PLAN SUBSCRIBERS
+            </p>
+            <p className="mt-2 font-display text-4xl text-brand-orange">
+              {memberCount}
+            </p>
+            <p className="mt-1 text-xs text-white/45">
+              Active Badlands Plan members
+            </p>
+          </Link>
+          <Link
+            href="/admin/team?access=founding"
+            className="border border-white/15 bg-black/40 px-4 py-4 transition hover:border-brand-orange"
+          >
+            <p className="text-xs tracking-[0.14em] text-white/50">
+              FOUNDING MEMBERS
+            </p>
+            <p className="mt-2 font-display text-4xl text-white">
+              {foundingCount}
+              <span className="text-2xl text-white/40">/{foundingLimit}</span>
+            </p>
+            <p className="mt-1 text-xs text-white/45">
+              First-month-free slots claimed
+            </p>
+          </Link>
+        </div>
+      </section>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (

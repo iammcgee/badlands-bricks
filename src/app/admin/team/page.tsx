@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { Prisma } from "@prisma/client";
 import {
   deleteUserAccountAction,
   resetUserPasswordAction,
   setStaffRoleAction,
 } from "@/app/admin/actions";
 import { getAdminAccess } from "@/lib/admin";
+import {
+  countFoundingMembers,
+  getFoundingMemberLimit,
+} from "@/lib/founding-members";
 import { PLAN_ACCESS_STATUSES } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 
@@ -24,6 +29,7 @@ export default async function AdminTeamPage({
     passwordReset?: string;
     deleted?: string;
     q?: string;
+    access?: string;
   }>;
 }) {
   const access = await getAdminAccess();
@@ -31,9 +37,36 @@ export default async function AdminTeamPage({
 
   const query = await searchParams;
   const search = (query.q || "").trim();
+  const accessFilter =
+    query.access === "members" || query.access === "founding"
+      ? query.access
+      : null;
   const liveSince = new Date(Date.now() - LIVE_WINDOW_MS);
+  const planStatuses = [...PLAN_ACCESS_STATUSES];
 
-  const [staff, accounts, liveSessions] = await Promise.all([
+  const accountWhere: Prisma.UserWhereInput = {};
+  if (search) {
+    accountWhere.OR = [
+      { name: { contains: search, mode: "insensitive" } },
+      { email: { contains: search, mode: "insensitive" } },
+    ];
+  }
+  if (accessFilter === "members") {
+    accountWhere.planSubscription = {
+      status: { in: planStatuses },
+    };
+  } else if (accessFilter === "founding") {
+    accountWhere.foundingMemberNumber = { not: null };
+  }
+
+  const [
+    staff,
+    accounts,
+    liveSessions,
+    totalJoined,
+    memberCount,
+    foundingCount,
+  ] = await Promise.all([
     prisma.user.findMany({
       where: { role: { in: ["admin", "reviewer"] } },
       orderBy: [{ role: "asc" }, { name: "asc" }],
@@ -46,14 +79,7 @@ export default async function AdminTeamPage({
       },
     }),
     prisma.user.findMany({
-      where: search
-        ? {
-            OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { email: { contains: search, mode: "insensitive" } },
-            ],
-          }
-        : undefined,
+      where: accountWhere,
       orderBy: [{ createdAt: "desc" }, { name: "asc" }],
       select: {
         id: true,
@@ -75,7 +101,14 @@ export default async function AdminTeamPage({
       select: { userId: true, lastSeenAt: true },
       orderBy: { lastSeenAt: "desc" },
     }),
+    prisma.user.count(),
+    prisma.planSubscription.count({
+      where: { status: { in: planStatuses } },
+    }),
+    countFoundingMembers(),
   ]);
+
+  const foundingLimit = getFoundingMemberLimit();
 
   const liveByUserId = new Map<string, Date>();
   for (const session of liveSessions) {
@@ -132,6 +165,45 @@ export default async function AdminTeamPage({
           Every Badlands account, live status by name, roles, and account tools.
         </p>
       </div>
+
+      <section className="grid gap-3 sm:grid-cols-3">
+        <div className="border border-white/15 px-4 py-4">
+          <p className="text-xs tracking-[0.14em] text-white/50">
+            JOINED BADLANDS
+          </p>
+          <p className="mt-1 font-display text-3xl text-white">{totalJoined}</p>
+          <p className="mt-1 text-xs text-white/45">Total accounts signed up</p>
+        </div>
+        <Link
+          href="/admin/team?access=members"
+          className="border border-white/15 px-4 py-4 transition hover:border-brand-orange"
+        >
+          <p className="text-xs tracking-[0.14em] text-white/50">
+            PLAN SUBSCRIBERS
+          </p>
+          <p className="mt-1 font-display text-3xl text-brand-orange">
+            {memberCount}
+          </p>
+          <p className="mt-1 text-xs text-white/45">
+            Active Badlands Plan members
+          </p>
+        </Link>
+        <Link
+          href="/admin/team?access=founding"
+          className="border border-white/15 px-4 py-4 transition hover:border-brand-orange"
+        >
+          <p className="text-xs tracking-[0.14em] text-white/50">
+            FOUNDING MEMBERS
+          </p>
+          <p className="mt-1 font-display text-3xl text-white">
+            {foundingCount}
+            <span className="text-xl text-white/40">/{foundingLimit}</span>
+          </p>
+          <p className="mt-1 text-xs text-white/45">
+            First-month-free slots claimed
+          </p>
+        </Link>
+      </section>
 
       <section className="border border-green-400/30 bg-green-400/5 p-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -373,11 +445,56 @@ export default async function AdminTeamPage({
             <h2 className="font-display text-2xl text-white">All accounts</h2>
             <p className="mt-1 text-sm text-white/50">
               {accounts.length} account{accounts.length === 1 ? "" : "s"}
-              {search ? " matching search" : ""} · {liveCount} live now
-              (active in the last 2 minutes)
+              {search ? " matching search" : ""}
+              {accessFilter === "members" ? " · plan subscribers" : ""}
+              {accessFilter === "founding" ? " · founding members" : ""} ·{" "}
+              {liveCount} live now (active in the last 2 minutes)
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link
+                href={search ? `/admin/team?q=${encodeURIComponent(search)}` : "/admin/team"}
+                className={`border px-3 py-1.5 text-xs tracking-[0.12em] ${
+                  !accessFilter
+                    ? "border-brand-orange text-brand-orange"
+                    : "border-white/20 text-white/55 hover:text-white"
+                }`}
+              >
+                ALL
+              </Link>
+              <Link
+                href={
+                  search
+                    ? `/admin/team?access=members&q=${encodeURIComponent(search)}`
+                    : "/admin/team?access=members"
+                }
+                className={`border px-3 py-1.5 text-xs tracking-[0.12em] ${
+                  accessFilter === "members"
+                    ? "border-brand-orange text-brand-orange"
+                    : "border-white/20 text-white/55 hover:text-white"
+                }`}
+              >
+                SUBSCRIBERS
+              </Link>
+              <Link
+                href={
+                  search
+                    ? `/admin/team?access=founding&q=${encodeURIComponent(search)}`
+                    : "/admin/team?access=founding"
+                }
+                className={`border px-3 py-1.5 text-xs tracking-[0.12em] ${
+                  accessFilter === "founding"
+                    ? "border-brand-orange text-brand-orange"
+                    : "border-white/20 text-white/55 hover:text-white"
+                }`}
+              >
+                FOUNDING
+              </Link>
+            </div>
           </div>
           <form action="/admin/team" method="get" className="flex gap-2">
+            {accessFilter ? (
+              <input type="hidden" name="access" value={accessFilter} />
+            ) : null}
             <input
               name="q"
               defaultValue={search}
@@ -390,7 +507,7 @@ export default async function AdminTeamPage({
             >
               SEARCH
             </button>
-            {search ? (
+            {search || accessFilter ? (
               <Link
                 href="/admin/team"
                 className="border border-white/15 px-3 py-2 text-xs tracking-[0.12em] text-white/50 hover:text-white"
