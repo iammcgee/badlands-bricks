@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { adminLogoutAction } from "@/app/admin/actions";
 import { getAdminAccess } from "@/lib/admin";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,10 @@ export default async function AdminLayout({
   if (!access) {
     return <>{children}</>;
   }
+
+  const unreadCount = await prisma.adminNotification.count({
+    where: { readAt: null },
+  });
 
   return (
     <div className="min-h-full bg-black">
@@ -46,6 +51,17 @@ export default async function AdminLayout({
                 {link.label.toUpperCase()}
               </Link>
             ))}
+            <Link
+              href="/admin/notifications"
+              className="relative text-xs tracking-[0.12em] text-white/70 transition hover:text-brand-orange"
+            >
+              ALERTS
+              {unreadCount > 0 ? (
+                <span className="ml-2 inline-flex min-w-[1.25rem] items-center justify-center bg-brand-orange px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              ) : null}
+            </Link>
             <form action={adminLogoutAction}>
               <button
                 type="submit"

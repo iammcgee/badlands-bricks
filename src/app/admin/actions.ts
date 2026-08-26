@@ -390,3 +390,40 @@ export async function deleteUserAccountAction(formData: FormData) {
   revalidatePath("/admin/team");
   redirect("/admin/team?deleted=1");
 }
+
+export async function markAdminNotificationReadAction(formData: FormData) {
+  try {
+    await requireAdminAccess("reviewer");
+  } catch {
+    redirect("/admin?error=1");
+  }
+
+  const id = String(formData.get("id") || "");
+  if (!id) redirect("/admin/notifications");
+
+  await prisma.adminNotification.updateMany({
+    where: { id, readAt: null },
+    data: { readAt: new Date() },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/notifications");
+  redirect("/admin/notifications");
+}
+
+export async function markAllAdminNotificationsReadAction() {
+  try {
+    await requireAdminAccess("reviewer");
+  } catch {
+    redirect("/admin?error=1");
+  }
+
+  await prisma.adminNotification.updateMany({
+    where: { readAt: null },
+    data: { readAt: new Date() },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/notifications");
+  redirect("/admin/notifications?cleared=1");
+}

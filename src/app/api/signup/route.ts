@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { notifyNewUserSignup } from "@/lib/admin-notifications";
 import { prisma } from "@/lib/prisma";
 
 const schema = z.object({
@@ -31,6 +32,13 @@ export async function POST(request: Request) {
       },
       select: { id: true, email: true, name: true },
     });
+
+    try {
+      await notifyNewUserSignup(user);
+    } catch (error) {
+      // Signup succeeded; don't fail the user if admin alert fails.
+      console.error("[signup admin notify failed]", error);
+    }
 
     return NextResponse.json({ ok: true, user });
   } catch (error) {

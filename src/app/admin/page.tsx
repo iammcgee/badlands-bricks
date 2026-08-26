@@ -71,6 +71,7 @@ export default async function AdminOverviewPage({
     contactCount,
     userCount,
     onlineCount,
+    unreadAlerts,
     recentMocs,
     recentOrders,
   ] = await Promise.all([
@@ -82,6 +83,7 @@ export default async function AdminOverviewPage({
     prisma.contactMessage.count(),
     prisma.user.count(),
     prisma.presenceSession.count({ where: { lastSeenAt: { gte: since } } }),
+    prisma.adminNotification.count({ where: { readAt: null } }),
     prisma.mocSubmission.findMany({
       orderBy: { createdAt: "desc" },
       take: 5,
@@ -101,6 +103,7 @@ export default async function AdminOverviewPage({
     { label: "Orders", value: orderCount, href: "/admin/ops#orders" },
     { label: "Messages", value: contactCount, href: "/admin/ops#messages" },
     { label: "Accounts", value: userCount, href: "/admin/team" },
+    { label: "Unread alerts", value: unreadAlerts, href: "/admin/notifications" },
     { label: "Online now", value: onlineCount, href: "/admin/team" },
   ];
 
