@@ -69,6 +69,9 @@ export function toProductView(
 }
 
 export function formatPrice(priceCents: number): string {
+  if (!Number.isFinite(priceCents) || priceCents <= 0) {
+    return "FREE";
+  }
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
