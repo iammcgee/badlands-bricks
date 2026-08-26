@@ -59,7 +59,7 @@ export default async function HomePage() {
           <img
             src="/products/hero.webp"
             alt="Max Flex MOC by Wesley"
-            className="animate-hero-panel h-full w-full object-cover object-center"
+            className="animate-hero-panel h-full w-full bg-black object-contain object-center"
             style={{ animationDelay: "120ms" }}
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
