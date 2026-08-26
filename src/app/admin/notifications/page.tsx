@@ -91,15 +91,7 @@ export default async function AdminNotificationsPage({
                       href={item.href}
                       className="border border-white/20 px-3 py-2 text-xs tracking-[0.12em] text-white/70 hover:border-brand-orange hover:text-brand-orange"
                     >
-                      OPEN
-                    </Link>
-                  ) : null}
-                  {item.type === "new_user" ? (
-                    <Link
-                      href="/admin/team"
-                      className="border border-white/20 px-3 py-2 text-xs tracking-[0.12em] text-white/70 hover:border-brand-orange hover:text-brand-orange"
-                    >
-                      TEAM
+                      {item.type === "new_user" ? "VIEW TEAM" : "OPEN"}
                     </Link>
                   ) : null}
                   {unread ? (
