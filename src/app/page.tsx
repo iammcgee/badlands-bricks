@@ -45,12 +45,14 @@ export default async function HomePage() {
 
   return (
     <div>
-      <section className="relative min-h-[78vh] overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-[center_42%]"
-          style={{ backgroundImage: "url('/products/hero.webp')" }}
+      <section className="relative min-h-[78vh] overflow-hidden bg-black">
+        {/* object-contain keeps Wesley's full Max Flex in frame (cover was cropping it). */}
+        <img
+          src="/products/hero.webp"
+          alt="Max Flex MOC by Wesley"
+          className="absolute inset-0 h-full w-full object-contain object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/25 to-black" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/15 to-black" />
 
         <div className="relative flex min-h-[78vh] flex-col items-center justify-center px-4 text-center">
           <Link
