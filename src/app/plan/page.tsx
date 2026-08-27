@@ -182,6 +182,7 @@ export default async function PlanPage({
             <PlanSubscribeButton
               signedIn={Boolean(session?.user)}
               hasActivePlan={hasActivePlan}
+              hasStripeBilling={Boolean(subscription?.stripeCustomerId)}
               cancelAtPeriodEnd={subscription?.cancelAtPeriodEnd}
               priceLabel={priceLabel}
             />
