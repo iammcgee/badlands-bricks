@@ -21,131 +21,100 @@ const TRIPTYCH = [
   },
 ];
 
-/** Mobile/tablet carousel order: lead with Max Flex, then the flanks. */
+/** Mobile/tablet order: lead with Max Flex, then the flanks. */
 const CAROUSEL = [TRIPTYCH[1], TRIPTYCH[0], TRIPTYCH[2]];
 const N = CAROUSEL.length;
-/** Triple the track so swipe can loop forever: …123 123 123… */
-const LOOP = [...CAROUSEL, ...CAROUSEL, ...CAROUSEL];
-const START_INDEX = N; // middle copy
+const AUTO_MS = 3500;
+const RESUME_MS = 6000;
 
 export function HomeHeroBanner({ marquee }: { marquee: string }) {
-  const scrollerRef = useRef<HTMLDivElement>(null);
-  const absoluteIndexRef = useRef(START_INDEX);
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
+  const resumeTimerRef = useRef(0);
+  const touchStartX = useRef<number | null>(null);
 
-  function slideWidth() {
-    return scrollerRef.current?.clientWidth || 0;
+  function pauseTemporarily() {
+    setPaused(true);
+    window.clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = window.setTimeout(() => {
+      setPaused(false);
+    }, RESUME_MS);
   }
 
-  function scrollToAbsolute(index: number, behavior: ScrollBehavior) {
-    const root = scrollerRef.current;
-    const width = slideWidth();
-    if (!root || !width) return;
-    root.scrollTo({ left: index * width, behavior });
-    absoluteIndexRef.current = index;
+  function goTo(index: number) {
     setActive(((index % N) + N) % N);
+    pauseTemporarily();
   }
 
-  /** If we landed in the first/last copy, jump to the matching middle slide. */
-  function normalizeLoop() {
-    const root = scrollerRef.current;
-    const width = slideWidth();
-    if (!root || !width) return;
-
-    const index = Math.round(root.scrollLeft / width);
-    absoluteIndexRef.current = index;
-    setActive(((index % N) + N) % N);
-
-    if (index < N) {
-      scrollToAbsolute(index + N, "auto");
-    } else if (index >= N * 2) {
-      scrollToAbsolute(index - N, "auto");
-    }
+  function goNext() {
+    setActive((current) => (current + 1) % N);
   }
 
-  useEffect(() => {
-    const root = scrollerRef.current;
-    if (!root) return;
+  function goPrev() {
+    setActive((current) => (current - 1 + N) % N);
+  }
 
-    // Land on the middle Max Flex slide without a visible jump.
-    const boot = () => scrollToAbsolute(START_INDEX, "auto");
-    boot();
-    const bootFrame = window.requestAnimationFrame(boot);
-
-    const onScrollEnd = () => normalizeLoop();
-    root.addEventListener("scrollend", onScrollEnd);
-
-    // Fallback for browsers without scrollend.
-    let settleTimer = 0;
-    const onScroll = () => {
-      window.clearTimeout(settleTimer);
-      settleTimer = window.setTimeout(() => normalizeLoop(), 80);
-    };
-    root.addEventListener("scroll", onScroll, { passive: true });
-
-    const onResize = () => scrollToAbsolute(absoluteIndexRef.current, "auto");
-    window.addEventListener("resize", onResize);
-
-    return () => {
-      window.cancelAnimationFrame(bootFrame);
-      root.removeEventListener("scrollend", onScrollEnd);
-      root.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
-      window.clearTimeout(settleTimer);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only setup
-  }, []);
-
+  // Timer-based autoplay on phone / iPad only.
   useEffect(() => {
     if (paused) return;
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(min-width: 1024px)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const id = window.setInterval(() => {
       if (window.matchMedia("(min-width: 1024px)").matches) return;
-      const next = absoluteIndexRef.current + 1;
-      scrollToAbsolute(next, "smooth");
-      // normalizeLoop runs on scrollend / settle.
-    }, 4200);
+      setActive((current) => (current + 1) % N);
+    }, AUTO_MS);
 
     return () => window.clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paused]);
 
-  function goTo(logical: number) {
-    setPaused(true);
-    // Prefer the middle copy so we keep infinite headroom either direction.
-    scrollToAbsolute(N + logical, "smooth");
-  }
+  useEffect(() => {
+    return () => window.clearTimeout(resumeTimerRef.current);
+  }, []);
 
   return (
     <section className="relative min-h-[78vh] overflow-hidden bg-black">
-      {/* Phone + iPad: infinite looping full-bleed carousel. */}
-      <div className="lg:hidden">
-        <div
-          ref={scrollerRef}
-          className="flex h-[78vh] snap-x snap-mandatory overflow-x-auto overscroll-x-contain scrollbar-none"
-          onPointerDown={() => setPaused(true)}
-          onTouchStart={() => setPaused(true)}
-          aria-label="Featured builds"
-        >
-          {LOOP.map((panel, index) => (
-            <div
-              key={`${panel.src}-${index}`}
-              data-hero-slide={index}
-              className="relative h-full w-full shrink-0 snap-center snap-always bg-black"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={panel.src}
-                alt={panel.alt}
-                className={`absolute inset-0 h-full w-full object-center ${
-                  panel.fit === "contain" ? "object-contain" : "object-cover"
-                }`}
-                draggable={false}
-              />
-            </div>
-          ))}
-        </div>
+      {/* Phone + iPad: automatic looping carousel (timer-based). */}
+      <div
+        className="relative h-[78vh] lg:hidden"
+        onTouchStart={(event) => {
+          touchStartX.current = event.changedTouches[0]?.clientX ?? null;
+          pauseTemporarily();
+        }}
+        onTouchEnd={(event) => {
+          const start = touchStartX.current;
+          touchStartX.current = null;
+          if (start == null) return;
+          const end = event.changedTouches[0]?.clientX;
+          if (end == null) return;
+          const delta = end - start;
+          if (Math.abs(delta) < 40) return;
+          if (delta < 0) goTo(active + 1);
+          else goTo(active - 1);
+        }}
+        aria-label="Featured builds"
+        aria-roledescription="carousel"
+      >
+        {CAROUSEL.map((panel, index) => (
+          <div
+            key={panel.src}
+            className={`absolute inset-0 bg-black transition-opacity duration-700 ease-out ${
+              index === active ? "opacity-100" : "opacity-0"
+            }`}
+            aria-hidden={index !== active}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={panel.src}
+              alt={panel.alt}
+              className={`h-full w-full object-center ${
+                panel.fit === "contain" ? "object-contain" : "object-cover"
+              }`}
+              draggable={false}
+            />
+          </div>
+        ))}
 
         <div className="absolute inset-x-0 bottom-20 z-10 flex justify-center gap-2.5">
           {CAROUSEL.map((panel, index) => (
