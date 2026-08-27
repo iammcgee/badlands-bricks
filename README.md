@@ -65,13 +65,14 @@ Success page also finalizes paid orders when returning with `session_id`, so loc
 2. Put instruction PDFs in `product-files/` (e.g. `product-files/max-flex-instructions.pdf`).
 3. Upsert the product in the database (edit `prisma/seed.ts` and re-run `npm run db:seed`, or insert via Prisma Studio: `npx prisma studio`).
 
-Seeded products:
+Seeded / restored products:
 
-- Max Flex — $10.00
-- Bee Buggy — $12.00
-- Trophy Truck — $0.00 (free download path)
+- Max Flex — community MOC (Wesley), restored from approved submission
+- Bee Buggy — community MOC (Wesley), restored from approved submission
+- Trophy Truck — catalog seed, members-only
 
-Placeholder SVGs and sample PDFs are created by the seed so the shop works before you export assets from Squarespace.
+Static Bee Buggy catalog photos were removed so deploys no longer overwrite
+Wesley’s submission images.
 
 ## Deploy & DNS
 
