@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HomeHeroBanner } from "@/components/HomeHeroBanner";
 import { ProductCard } from "@/components/ProductCard";
 import { auth } from "@/lib/auth";
 import { userHasPlanAccess } from "@/lib/plan";
@@ -45,49 +46,7 @@ export default async function HomePage() {
 
   return (
     <div>
-      <section className="relative min-h-[78vh] overflow-hidden bg-black">
-        {/* One full-bleed triptych: Bee Buggy | Max Flex | Trophy Truck */}
-        <div className="absolute inset-0 grid grid-cols-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/products/bee-buggy-1.jpg"
-            alt="Bee Buggy"
-            className="animate-hero-panel h-full w-full object-cover object-center"
-            style={{ animationDelay: "0ms" }}
-          />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/products/hero.webp"
-            alt="Max Flex MOC by Wesley"
-            className="animate-hero-panel h-full w-full bg-black object-contain object-center"
-            style={{ animationDelay: "120ms" }}
-          />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/products/trophy-truck-1.jpg"
-            alt="Trophy Truck"
-            className="animate-hero-panel h-full w-full object-cover object-center"
-            style={{ animationDelay: "240ms" }}
-          />
-        </div>
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black" />
-
-        <div className="relative flex min-h-[78vh] flex-col items-center justify-center px-4 text-center">
-          <Link
-            href="/build"
-            className="animate-hero-cta bg-brand-orange/90 px-10 py-5 font-display text-4xl tracking-[0.08em] text-white shadow-lg transition hover:bg-brand-orange md:text-6xl"
-          >
-            BUILD NOW
-          </Link>
-        </div>
-
-        <div className="absolute bottom-0 left-0 w-full overflow-hidden border-y border-white/10 bg-black/40 py-3">
-          <div className="animate-marquee flex w-max whitespace-nowrap font-display text-3xl tracking-[0.06em] text-white md:text-5xl">
-            <span>{marquee.repeat(4)}</span>
-            <span>{marquee.repeat(4)}</span>
-          </div>
-        </div>
-      </section>
+      <HomeHeroBanner marquee={marquee} />
 
       <section className="mx-auto max-w-7xl px-4 py-16 md:px-8">
         <h2 className="text-center font-display text-5xl tracking-[0.1em] text-white md:text-6xl">

@@ -38,6 +38,23 @@ body {
   animation: marquee 48s linear infinite;
 }
 
+/* Hide native scrollbar on the mobile hero carousel without killing scroll. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-hero-panel,
+  .animate-hero-cta {
+    animation: none !important;
+  }
+}
+
 @keyframes hero-panel-in {
   from {
     opacity: 0;
