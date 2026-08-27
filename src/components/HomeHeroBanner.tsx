@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 const TRIPTYCH = [
   {
-    src: "/products/bee-buggy-1.jpg",
+    src: "/products/wesley-bee-buggy.webp",
     alt: "Bee Buggy",
     fit: "cover" as const,
   },

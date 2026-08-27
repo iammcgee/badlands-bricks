@@ -1,26 +1,13 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type Prisma } from "@prisma/client";
 import { mkdirSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { publishApprovedMocToBuild } from "../src/lib/moc-publish";
 
 const prisma = new PrismaClient();
 
+/** Official catalog products that are still seeded (not community MOCs). */
 const products = [
-  {
-    slug: "bee-buggy",
-    name: "Bee Buggy",
-    priceCents: 1200,
-    description:
-      "Sting the competition and tear up the dunes with the Bee Buggy. Sporting a striking high-visibility yellow and black color scheme, this custom off-road machine combines eye-catching looks with agile performance.",
-    images: [
-      "/products/bee-buggy-1.jpg",
-      "/products/bee-buggy-2.jpg",
-      "/products/bee-buggy-3.jpg",
-      "/products/bee-buggy-4.jpg",
-    ],
-    downloadFilePath: "product-files/bee-buggy-instructions.pdf",
-  },
   {
     slug: "trophy-truck",
     name: "Trophy Truck",
@@ -31,6 +18,8 @@ const products = [
     downloadFilePath: "product-files/trophy-truck-instructions.pdf",
   },
 ];
+
+const WESLEY_EMAIL = "wesleybarcus@icloud.com";
 
 function ensurePlaceholderPdf(relativePath: string, title: string) {
   const fullPath = join(process.cwd(), relativePath);
@@ -84,9 +73,80 @@ function looksLikeSeededMaxFlex(product: {
   );
 }
 
-async function restoreCommunityMaxFlex() {
-  // 1) Remove the original Badlands catalog Max Flex (not tied to a submission).
+function looksLikeSeededBeeBuggy(product: {
+  mocSubmissionId: string | null;
+  slug: string;
+  name: string;
+  downloadFilePath: string | null;
+  imagesJson: string;
+  creator: { slug: string };
+}) {
+  if (product.mocSubmissionId) return false;
+  const images = product.imagesJson.toLowerCase();
+  return (
+    product.slug === "bee-buggy" ||
+    product.slug.startsWith("bee-buggy-") ||
+    product.name.toLowerCase() === "bee buggy" ||
+    product.downloadFilePath === "product-files/bee-buggy-instructions.pdf" ||
+    images.includes("/products/bee-buggy-") ||
+    (product.creator.slug === "badlands-bricks" &&
+      product.name.toLowerCase().includes("bee buggy"))
+  );
+}
+
+async function removeSeededCatalogProduct(options: {
+  label: string;
+  where: Prisma.ProductWhereInput;
+  matches: (product: {
+    mocSubmissionId: string | null;
+    slug: string;
+    name: string;
+    downloadFilePath: string | null;
+    imagesJson: string;
+    creator: { slug: string };
+  }) => boolean;
+}) {
   const catalogCandidates = await prisma.product.findMany({
+    where: options.where,
+    include: { creator: true, _count: { select: { orderItems: true } } },
+  });
+
+  for (const product of catalogCandidates) {
+    if (!options.matches(product)) continue;
+    if (product._count.orderItems > 0) {
+      await prisma.product.update({
+        where: { id: product.id },
+        data: {
+          isActive: false,
+          slug: `archived-${product.slug}-${product.id.slice(-6)}`,
+        },
+      });
+      console.log(`Hid seeded ${options.label} with orders: ${product.slug}`);
+    } else {
+      await prisma.product.delete({ where: { id: product.id } });
+      console.log(`Deleted seeded ${options.label}: ${product.slug}`);
+    }
+  }
+}
+
+async function claimCleanSlug(productId: string, slug: string) {
+  const taken = await prisma.product.findUnique({
+    where: { slug },
+    select: { id: true },
+  });
+  if (!taken || taken.id === productId) {
+    await prisma.product.update({
+      where: { id: productId },
+      data: { slug, isActive: true },
+    });
+    return slug;
+  }
+  return null;
+}
+
+async function restoreCommunityMaxFlex() {
+  await removeSeededCatalogProduct({
+    label: "Max Flex",
     where: {
       mocSubmissionId: null,
       OR: [
@@ -97,29 +157,14 @@ async function restoreCommunityMaxFlex() {
         { imagesJson: { contains: "/products/max-flex-" } },
       ],
     },
-    include: { creator: true, _count: { select: { orderItems: true } } },
+    matches: looksLikeSeededMaxFlex,
   });
 
-  for (const product of catalogCandidates) {
-    if (!looksLikeSeededMaxFlex(product)) continue;
-    if (product._count.orderItems > 0) {
-      await prisma.product.update({
-        where: { id: product.id },
-        data: { isActive: false, slug: `archived-${product.slug}-${product.id.slice(-6)}` },
-      });
-      console.log(`Hid seeded Max Flex with orders: ${product.slug}`);
-    } else {
-      await prisma.product.delete({ where: { id: product.id } });
-      console.log(`Deleted seeded Max Flex: ${product.slug}`);
-    }
-  }
-
-  // 2) Find Wesley's / community approved Max Flex submissions and republish.
   const submissions = await prisma.mocSubmission.findMany({
     where: {
       status: "approved",
       OR: [
-        { builderEmail: "wesleybarcus@icloud.com" },
+        { builderEmail: WESLEY_EMAIL },
         { mocName: { equals: "Max Flex", mode: "insensitive" } },
         { mocName: { contains: "Max Flex", mode: "insensitive" } },
       ],
@@ -129,9 +174,8 @@ async function restoreCommunityMaxFlex() {
 
   let restoredSlug: string | null = null;
   for (const submission of submissions) {
-    // Prefer Wesley's Max Flex if multiple match.
     const isWesley =
-      submission.builderEmail.toLowerCase() === "wesleybarcus@icloud.com";
+      submission.builderEmail.toLowerCase() === WESLEY_EMAIL;
     const isMaxFlex = /max\s*flex/i.test(submission.mocName);
     if (!isWesley && !isMaxFlex) continue;
 
@@ -141,19 +185,8 @@ async function restoreCommunityMaxFlex() {
     );
 
     if (isWesley && isMaxFlex) {
-      restoredSlug = product.slug;
-      // Claim the clean slug once the seeded product is gone.
-      const taken = await prisma.product.findUnique({
-        where: { slug: "max-flex" },
-        select: { id: true },
-      });
-      if (!taken || taken.id === product.id) {
-        await prisma.product.update({
-          where: { id: product.id },
-          data: { slug: "max-flex", isActive: true },
-        });
-        restoredSlug = "max-flex";
-      }
+      restoredSlug =
+        (await claimCleanSlug(product.id, "max-flex")) || product.slug;
     } else if (!restoredSlug && isMaxFlex) {
       restoredSlug = product.slug;
     }
@@ -165,6 +198,57 @@ async function restoreCommunityMaxFlex() {
     );
   } else {
     console.log(`Community Max Flex live at /build/${restoredSlug}`);
+  }
+}
+
+async function restoreCommunityBeeBuggy() {
+  // Remove the old static Badlands catalog Bee Buggy so it can't overwrite Wesley's.
+  await removeSeededCatalogProduct({
+    label: "Bee Buggy",
+    where: {
+      mocSubmissionId: null,
+      OR: [
+        { slug: "bee-buggy" },
+        { slug: { startsWith: "bee-buggy-" } },
+        { name: { equals: "Bee Buggy", mode: "insensitive" } },
+        { downloadFilePath: "product-files/bee-buggy-instructions.pdf" },
+        { imagesJson: { contains: "/products/bee-buggy-" } },
+      ],
+    },
+    matches: looksLikeSeededBeeBuggy,
+  });
+
+  // Prefer Wesley's approved Bee Buggy and republish his blob photos/PDF.
+  const submissions = await prisma.mocSubmission.findMany({
+    where: {
+      status: "approved",
+      builderEmail: WESLEY_EMAIL,
+      mocName: { contains: "Bee", mode: "insensitive" },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  let restoredSlug: string | null = null;
+  for (const submission of submissions) {
+    if (!/bee\s*buggy/i.test(submission.mocName)) continue;
+
+    const product = await publishApprovedMocToBuild(submission, {
+      allowWithoutMembership: true,
+    });
+    console.log(
+      `Restored community MOC "${submission.mocName}" by ${submission.builderName} as /build/${product.slug}`,
+    );
+
+    restoredSlug =
+      (await claimCleanSlug(product.id, "bee-buggy")) || product.slug;
+  }
+
+  if (!restoredSlug) {
+    console.log(
+      "No approved Wesley Bee Buggy submission found to restore into Build.",
+    );
+  } else {
+    console.log(`Community Bee Buggy live at /build/${restoredSlug}`);
   }
 }
 
@@ -192,6 +276,7 @@ async function main() {
   await prisma.product.deleteMany({ where: { slug: "semi-truck" } });
 
   await restoreCommunityMaxFlex();
+  await restoreCommunityBeeBuggy();
 
   for (const product of products) {
     ensurePlaceholderPdf(product.downloadFilePath, product.name);
@@ -221,7 +306,7 @@ async function main() {
     });
   }
 
-  // Max Flex (community restore) + Bee Buggy + Trophy Truck are the launch plan set.
+  // Community Max Flex + Bee Buggy + seeded Trophy Truck are the launch plan set.
   const planMarked = await prisma.product.updateMany({
     where: {
       OR: [
@@ -236,17 +321,14 @@ async function main() {
     data: { includedInPlan: true },
   });
 
-  const ownerEmails = [
-    "wesleybarcus@icloud.com",
-    "canaanmcgee@gmail.com",
-  ];
+  const ownerEmails = [WESLEY_EMAIL, "canaanmcgee@gmail.com"];
   const promoted = await prisma.user.updateMany({
     where: { email: { in: ownerEmails } },
     data: { role: "admin" },
   });
 
   console.log(
-    `Seeded creator + ${products.length} products. Marked ${planMarked.count} plan build(s). Promoted ${promoted.count} owner admin(s).`,
+    `Seeded creator + ${products.length} catalog product(s). Marked ${planMarked.count} plan build(s). Promoted ${promoted.count} owner admin(s).`,
   );
 }
 
