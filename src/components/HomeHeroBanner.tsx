@@ -24,12 +24,14 @@ const TRIPTYCH = [
 /** Mobile/tablet order: lead with Max Flex, then the flanks. */
 const CAROUSEL = [TRIPTYCH[1], TRIPTYCH[0], TRIPTYCH[2]];
 const N = CAROUSEL.length;
+const STEP_DEG = 360 / N;
 const AUTO_MS = 3500;
 const RESUME_MS = 6000;
 
 export function HomeHeroBanner({ marquee }: { marquee: string }) {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
   const resumeTimerRef = useRef(0);
   const touchStartX = useRef<number | null>(null);
 
@@ -46,12 +48,19 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
     pauseTemporarily();
   }
 
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduceMotion(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
   // Timer-based autoplay on phone / iPad only.
   useEffect(() => {
-    if (paused) return;
+    if (paused || reduceMotion) return;
     if (typeof window === "undefined") return;
     if (window.matchMedia("(min-width: 1024px)").matches) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const id = window.setInterval(() => {
       if (window.matchMedia("(min-width: 1024px)").matches) return;
@@ -59,7 +68,7 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
     }, AUTO_MS);
 
     return () => window.clearInterval(id);
-  }, [paused]);
+  }, [paused, reduceMotion]);
 
   useEffect(() => {
     return () => window.clearTimeout(resumeTimerRef.current);
@@ -67,9 +76,9 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
 
   return (
     <section className="relative min-h-[78vh] overflow-hidden bg-black">
-      {/* Phone + iPad: automatic looping carousel (timer-based). */}
+      {/* Phone + iPad: 3D box carousel — builds on the faces of a rotating prism. */}
       <div
-        className="relative h-[78vh] lg:hidden"
+        className="relative flex h-[78vh] items-center justify-center lg:hidden"
         onTouchStart={(event) => {
           touchStartX.current = event.changedTouches[0]?.clientX ?? null;
           pauseTemporarily();
@@ -88,25 +97,47 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
         aria-label="Featured builds"
         aria-roledescription="carousel"
       >
-        {CAROUSEL.map((panel, index) => (
+        <div className="hero-3d-scene">
           <div
-            key={panel.src}
-            className={`absolute inset-0 bg-black transition-opacity duration-700 ease-out ${
-              index === active ? "opacity-100" : "opacity-0"
-            }`}
-            aria-hidden={index !== active}
+            className={`hero-3d-box ${reduceMotion ? "hero-3d-box--flat" : ""}`}
+            style={
+              reduceMotion
+                ? undefined
+                : { transform: `rotateY(${-active * STEP_DEG}deg)` }
+            }
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={panel.src}
-              alt={panel.alt}
-              className={`h-full w-full object-center ${
-                panel.fit === "contain" ? "object-contain" : "object-cover"
-              }`}
-              draggable={false}
-            />
+            {CAROUSEL.map((panel, index) => (
+              <div
+                key={panel.src}
+                className={`hero-3d-face ${
+                  reduceMotion
+                    ? index === active
+                      ? "hero-3d-face--flat-active"
+                      : "hero-3d-face--flat-hidden"
+                    : ""
+                }`}
+                style={
+                  reduceMotion
+                    ? undefined
+                    : {
+                        transform: `rotateY(${index * STEP_DEG}deg) translateZ(var(--hero-3d-radius))`,
+                      }
+                }
+                aria-hidden={index !== active}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={panel.src}
+                  alt={panel.alt}
+                  className={
+                    panel.fit === "contain" ? "object-contain" : "object-cover"
+                  }
+                  draggable={false}
+                />
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
 
         <div className="absolute inset-x-0 bottom-20 z-10 flex justify-center gap-2.5">
           {CAROUSEL.map((panel, index) => (
