@@ -7,17 +7,17 @@ const TRIPTYCH = [
   {
     src: "/products/wesley-bee-buggy.webp",
     alt: "Bee Buggy",
-    fit: "cover" as const,
+    position: "center" as const,
   },
   {
     src: "/products/hero.webp",
     alt: "Max Flex MOC by Wesley",
-    fit: "contain" as const,
+    position: "center" as const,
   },
   {
     src: "/products/trophy-truck-1.jpg",
     alt: "Trophy Truck",
-    fit: "cover" as const,
+    position: "center 42%" as const,
   },
 ];
 
@@ -28,12 +28,18 @@ const STEP_DEG = 360 / N;
 const AUTO_MS = 3500;
 const RESUME_MS = 6000;
 
+function logicalIndex(turn: number) {
+  return ((turn % N) + N) % N;
+}
+
 export function HomeHeroBanner({ marquee }: { marquee: string }) {
-  const [active, setActive] = useState(0);
+  /** Monotonic turn count so rotateY never jumps backward when looping. */
+  const [turn, setTurn] = useState(0);
   const [paused, setPaused] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const resumeTimerRef = useRef(0);
   const touchStartX = useRef<number | null>(null);
+  const active = logicalIndex(turn);
 
   function pauseTemporarily() {
     setPaused(true);
@@ -43,8 +49,21 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
     }, RESUME_MS);
   }
 
+  function stepBy(delta: number) {
+    setTurn((current) => current + delta);
+    pauseTemporarily();
+  }
+
+  /** Jump to a face via the shortest continuous spin (no rewind snap). */
   function goTo(index: number) {
-    setActive(((index % N) + N) % N);
+    const target = ((index % N) + N) % N;
+    setTurn((current) => {
+      const currentLogical = logicalIndex(current);
+      let delta = target - currentLogical;
+      if (delta > N / 2) delta -= N;
+      if (delta < -N / 2) delta += N;
+      return current + delta;
+    });
     pauseTemporarily();
   }
 
@@ -56,7 +75,7 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
     return () => mq.removeEventListener("change", sync);
   }, []);
 
-  // Timer-based autoplay on phone / iPad only.
+  // Timer-based autoplay on phone / iPad only — always steps forward.
   useEffect(() => {
     if (paused || reduceMotion) return;
     if (typeof window === "undefined") return;
@@ -64,7 +83,7 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
 
     const id = window.setInterval(() => {
       if (window.matchMedia("(min-width: 1024px)").matches) return;
-      setActive((current) => (current + 1) % N);
+      setTurn((current) => current + 1);
     }, AUTO_MS);
 
     return () => window.clearInterval(id);
@@ -91,8 +110,8 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
           if (end == null) return;
           const delta = end - start;
           if (Math.abs(delta) < 40) return;
-          if (delta < 0) goTo(active + 1);
-          else goTo(active - 1);
+          if (delta < 0) stepBy(1);
+          else stepBy(-1);
         }}
         aria-label="Featured builds"
         aria-roledescription="carousel"
@@ -103,7 +122,7 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
             style={
               reduceMotion
                 ? undefined
-                : { transform: `rotateY(${-active * STEP_DEG}deg)` }
+                : { transform: `rotateY(${-turn * STEP_DEG}deg)` }
             }
           >
             {CAROUSEL.map((panel, index) => (
@@ -129,9 +148,8 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
                 <img
                   src={panel.src}
                   alt={panel.alt}
-                  className={
-                    panel.fit === "contain" ? "object-contain" : "object-cover"
-                  }
+                  className="object-cover"
+                  style={{ objectPosition: panel.position }}
                   draggable={false}
                 />
               </div>
@@ -163,10 +181,11 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
             key={panel.src}
             src={panel.src}
             alt={panel.alt}
-            className={`animate-hero-panel h-full w-full bg-black object-center ${
-              panel.fit === "contain" ? "object-contain" : "object-cover"
-            }`}
-            style={{ animationDelay: `${index * 120}ms` }}
+            className="animate-hero-panel h-full w-full bg-black object-cover object-center"
+            style={{
+              animationDelay: `${index * 120}ms`,
+              objectPosition: panel.position,
+            }}
           />
         ))}
       </div>
