@@ -13,6 +13,7 @@ import {
   listPlanProducts,
   getUserPlanSubscription,
   upsertPlanSubscriptionFromStripe,
+  userHasPlanAccess,
 } from "@/lib/plan";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 
@@ -108,7 +109,9 @@ export default async function PlanPage({
   const subscription = session?.user?.id
     ? await getUserPlanSubscription(session.user.id)
     : null;
-  const hasActivePlan = isPlanAccessActive(subscription);
+  const hasActivePlan = session?.user?.id
+    ? await userHasPlanAccess(session.user.id)
+    : false;
   const priceLabel = getPlanPriceLabel();
   const stripeReady = isStripeConfigured();
   const foundingRemaining = await getFoundingMemberSlotsRemaining();
