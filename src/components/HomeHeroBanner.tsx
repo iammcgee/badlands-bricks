@@ -46,14 +46,6 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
     pauseTemporarily();
   }
 
-  function goNext() {
-    setActive((current) => (current + 1) % N);
-  }
-
-  function goPrev() {
-    setActive((current) => (current - 1 + N) % N);
-  }
-
   // Timer-based autoplay on phone / iPad only.
   useEffect(() => {
     if (paused) return;
