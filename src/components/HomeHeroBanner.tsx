@@ -23,33 +23,78 @@ const TRIPTYCH = [
 
 /** Mobile/tablet carousel order: lead with Max Flex, then the flanks. */
 const CAROUSEL = [TRIPTYCH[1], TRIPTYCH[0], TRIPTYCH[2]];
+const N = CAROUSEL.length;
+/** Triple the track so swipe can loop forever: …123 123 123… */
+const LOOP = [...CAROUSEL, ...CAROUSEL, ...CAROUSEL];
+const START_INDEX = N; // middle copy
 
 export function HomeHeroBanner({ marquee }: { marquee: string }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const absoluteIndexRef = useRef(START_INDEX);
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
+
+  function slideWidth() {
+    return scrollerRef.current?.clientWidth || 0;
+  }
+
+  function scrollToAbsolute(index: number, behavior: ScrollBehavior) {
+    const root = scrollerRef.current;
+    const width = slideWidth();
+    if (!root || !width) return;
+    root.scrollTo({ left: index * width, behavior });
+    absoluteIndexRef.current = index;
+    setActive(((index % N) + N) % N);
+  }
+
+  /** If we landed in the first/last copy, jump to the matching middle slide. */
+  function normalizeLoop() {
+    const root = scrollerRef.current;
+    const width = slideWidth();
+    if (!root || !width) return;
+
+    const index = Math.round(root.scrollLeft / width);
+    absoluteIndexRef.current = index;
+    setActive(((index % N) + N) % N);
+
+    if (index < N) {
+      scrollToAbsolute(index + N, "auto");
+    } else if (index >= N * 2) {
+      scrollToAbsolute(index - N, "auto");
+    }
+  }
 
   useEffect(() => {
     const root = scrollerRef.current;
     if (!root) return;
 
-    const slides = Array.from(root.querySelectorAll<HTMLElement>("[data-hero-slide]"));
-    if (slides.length === 0) return;
+    // Land on the middle Max Flex slide without a visible jump.
+    const boot = () => scrollToAbsolute(START_INDEX, "auto");
+    boot();
+    const bootFrame = window.requestAnimationFrame(boot);
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (!visible) return;
-        const index = Number(visible.target.getAttribute("data-hero-slide"));
-        if (Number.isFinite(index)) setActive(index);
-      },
-      { root, threshold: [0.55, 0.7] },
-    );
+    const onScrollEnd = () => normalizeLoop();
+    root.addEventListener("scrollend", onScrollEnd);
 
-    slides.forEach((slide) => observer.observe(slide));
-    return () => observer.disconnect();
+    // Fallback for browsers without scrollend.
+    let settleTimer = 0;
+    const onScroll = () => {
+      window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(() => normalizeLoop(), 80);
+    };
+    root.addEventListener("scroll", onScroll, { passive: true });
+
+    const onResize = () => scrollToAbsolute(absoluteIndexRef.current, "auto");
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      window.cancelAnimationFrame(bootFrame);
+      root.removeEventListener("scrollend", onScrollEnd);
+      root.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      window.clearTimeout(settleTimer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only setup
   }, []);
 
   useEffect(() => {
@@ -57,27 +102,24 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
 
     const id = window.setInterval(() => {
       if (window.matchMedia("(min-width: 1024px)").matches) return;
-      const root = scrollerRef.current;
-      if (!root) return;
-      const next = (active + 1) % CAROUSEL.length;
-      const slide = root.querySelector<HTMLElement>(`[data-hero-slide="${next}"]`);
-      slide?.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+      const next = absoluteIndexRef.current + 1;
+      scrollToAbsolute(next, "smooth");
+      // normalizeLoop runs on scrollend / settle.
     }, 4200);
 
     return () => window.clearInterval(id);
-  }, [active, paused]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paused]);
 
-  function goTo(index: number) {
-    const root = scrollerRef.current;
-    if (!root) return;
+  function goTo(logical: number) {
     setPaused(true);
-    const slide = root.querySelector<HTMLElement>(`[data-hero-slide="${index}"]`);
-    slide?.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+    // Prefer the middle copy so we keep infinite headroom either direction.
+    scrollToAbsolute(N + logical, "smooth");
   }
 
   return (
     <section className="relative min-h-[78vh] overflow-hidden bg-black">
-      {/* Phone + iPad: one full-bleed image at a time (snap carousel). */}
+      {/* Phone + iPad: infinite looping full-bleed carousel. */}
       <div className="lg:hidden">
         <div
           ref={scrollerRef}
@@ -86,9 +128,9 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
           onTouchStart={() => setPaused(true)}
           aria-label="Featured builds"
         >
-          {CAROUSEL.map((panel, index) => (
+          {LOOP.map((panel, index) => (
             <div
-              key={panel.src}
+              key={`${panel.src}-${index}`}
               data-hero-slide={index}
               className="relative h-full w-full shrink-0 snap-center snap-always bg-black"
             >
@@ -96,10 +138,9 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
               <img
                 src={panel.src}
                 alt={panel.alt}
-                className={`animate-hero-panel absolute inset-0 h-full w-full object-center ${
+                className={`absolute inset-0 h-full w-full object-center ${
                   panel.fit === "contain" ? "object-contain" : "object-cover"
                 }`}
-                style={{ animationDelay: `${index * 80}ms` }}
                 draggable={false}
               />
             </div>
@@ -115,7 +156,7 @@ export function HomeHeroBanner({ marquee }: { marquee: string }) {
               aria-current={active === index}
               onClick={() => goTo(index)}
               className={`h-2.5 w-2.5 rounded-full transition ${
-                active === index ? "bg-brand-orange scale-110" : "bg-white/45"
+                active === index ? "scale-110 bg-brand-orange" : "bg-white/45"
               }`}
             />
           ))}
