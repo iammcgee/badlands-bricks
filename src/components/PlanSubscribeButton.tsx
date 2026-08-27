@@ -7,6 +7,8 @@ import { useState } from "react";
 type Props = {
   signedIn: boolean;
   hasActivePlan: boolean;
+  /** False for complimentary staff access with no Stripe customer. */
+  hasStripeBilling?: boolean;
   cancelAtPeriodEnd?: boolean;
   priceLabel: string;
 };
@@ -14,6 +16,7 @@ type Props = {
 export function PlanSubscribeButton({
   signedIn,
   hasActivePlan,
+  hasStripeBilling = true,
   cancelAtPeriodEnd,
   priceLabel,
 }: Props) {
@@ -77,6 +80,24 @@ export function PlanSubscribeButton({
   }
 
   if (hasActivePlan) {
+    if (!hasStripeBilling) {
+      return (
+        <div className="space-y-3">
+          <p className="text-sm text-brand-orange">
+            Staff access unlocked — all members-only MOCs are included at no
+            charge.
+          </p>
+          <button
+            type="button"
+            className="block text-xs text-white/45 hover:text-brand-orange"
+            onClick={() => router.refresh()}
+          >
+            Refresh status
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-3">
         <p className="text-sm text-brand-orange">

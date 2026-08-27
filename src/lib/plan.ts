@@ -1,5 +1,6 @@
 import type { PlanSubscription, Product } from "@prisma/client";
 import type Stripe from "stripe";
+import { isStaffRole } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/products";
 
@@ -38,9 +39,21 @@ export async function getUserPlanSubscription(userId: string) {
   return prisma.planSubscription.findUnique({ where: { userId } });
 }
 
+/**
+ * Paid Badlands Plan members unlock members-only MOCs.
+ * Staff (admin / reviewer) get the same access automatically — no subscription.
+ */
 export async function userHasPlanAccess(userId: string): Promise<boolean> {
-  const sub = await getUserPlanSubscription(userId);
-  return isPlanAccessActive(sub);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      role: true,
+      planSubscription: { select: { status: true } },
+    },
+  });
+  if (!user) return false;
+  if (isStaffRole(user.role)) return true;
+  return isPlanAccessActive(user.planSubscription);
 }
 
 /** Active Badlands Plan members can list community MOCs for sale. */
