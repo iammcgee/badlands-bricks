@@ -43,6 +43,9 @@ export default async function AdminTeamPage({
       : null;
   const liveSince = new Date(Date.now() - LIVE_WINDOW_MS);
   const planStatuses = [...PLAN_ACCESS_STATUSES];
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const accountWhere: Prisma.UserWhereInput = {};
   if (search) {
@@ -66,6 +69,9 @@ export default async function AdminTeamPage({
     totalJoined,
     memberCount,
     foundingCount,
+    totalVisitors,
+    visitorsToday,
+    visitorsLast7Days,
   ] = await Promise.all([
     prisma.user.findMany({
       where: { role: { in: ["admin", "reviewer"] } },
@@ -106,6 +112,13 @@ export default async function AdminTeamPage({
       where: { status: { in: planStatuses } },
     }),
     countFoundingMembers(),
+    prisma.siteVisitor.count(),
+    prisma.siteVisitor.count({
+      where: { firstSeenAt: { gte: startOfToday } },
+    }),
+    prisma.siteVisitor.count({
+      where: { firstSeenAt: { gte: weekAgo } },
+    }),
   ]);
 
   const foundingLimit = getFoundingMemberLimit();
@@ -162,11 +175,41 @@ export default async function AdminTeamPage({
           TEAM
         </h1>
         <p className="mt-2 text-white/60">
-          Every Badlands account, live status by name, roles, and account tools.
+          Every Badlands account, site visitors (including guests), live status,
+          roles, and account tools.
         </p>
       </div>
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="border border-brand-orange/35 bg-brand-orange/5 px-4 py-4">
+          <p className="text-xs tracking-[0.14em] text-white/50">
+            SITE VISITORS
+          </p>
+          <p className="mt-1 font-display text-3xl text-brand-orange">
+            {totalVisitors}
+          </p>
+          <p className="mt-1 text-xs text-white/45">
+            Total unique browsers that visited (accounts + guests)
+          </p>
+        </div>
+        <div className="border border-white/15 px-4 py-4">
+          <p className="text-xs tracking-[0.14em] text-white/50">
+            NEW VISITORS TODAY
+          </p>
+          <p className="mt-1 font-display text-3xl text-white">{visitorsToday}</p>
+          <p className="mt-1 text-xs text-white/45">
+            First-time visits since midnight
+          </p>
+        </div>
+        <div className="border border-white/15 px-4 py-4">
+          <p className="text-xs tracking-[0.14em] text-white/50">LAST 7 DAYS</p>
+          <p className="mt-1 font-display text-3xl text-white">
+            {visitorsLast7Days}
+          </p>
+          <p className="mt-1 text-xs text-white/45">
+            New unique visitors this week
+          </p>
+        </div>
         <div className="border border-white/15 px-4 py-4">
           <p className="text-xs tracking-[0.14em] text-white/50">
             JOINED BADLANDS
@@ -174,6 +217,9 @@ export default async function AdminTeamPage({
           <p className="mt-1 font-display text-3xl text-white">{totalJoined}</p>
           <p className="mt-1 text-xs text-white/45">Total accounts signed up</p>
         </div>
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2">
         <Link
           href="/admin/team?access=members"
           className="border border-white/15 px-4 py-4 transition hover:border-brand-orange"
