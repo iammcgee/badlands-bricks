@@ -23,22 +23,40 @@ export async function POST() {
   }
 
   const session = await auth();
+  const userId = session?.user?.id ?? null;
+  const now = new Date();
 
-  await prisma.presenceSession.upsert({
-    where: { sessionKey },
-    update: {
-      lastSeenAt: new Date(),
-      userId: session?.user?.id ?? null,
-    },
-    create: {
-      sessionKey,
-      lastSeenAt: new Date(),
-      userId: session?.user?.id ?? null,
-    },
-  });
+  await Promise.all([
+    prisma.presenceSession.upsert({
+      where: { sessionKey },
+      update: {
+        lastSeenAt: now,
+        userId,
+      },
+      create: {
+        sessionKey,
+        lastSeenAt: now,
+        userId,
+      },
+    }),
+    // Durable unique visitor log (guests + members). Not cleaned up with presence.
+    prisma.siteVisitor.upsert({
+      where: { sessionKey },
+      update: {
+        lastSeenAt: now,
+        userId,
+      },
+      create: {
+        sessionKey,
+        firstSeenAt: now,
+        lastSeenAt: now,
+        userId,
+      },
+    }),
+  ]);
 
   const cutoff = new Date(Date.now() - ONLINE_WINDOW_MS);
-  // Cleanup stale sessions occasionally
+  // Cleanup stale "online now" sessions only — keep SiteVisitor forever.
   await prisma.presenceSession.deleteMany({
     where: { lastSeenAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
   });

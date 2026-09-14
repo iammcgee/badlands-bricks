@@ -91,6 +91,18 @@ model PresenceSession {
   user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
+/** Durable unique visitors (cookie/browser), including guests with no account. */
+model SiteVisitor {
+  id          String   @id @default(cuid())
+  sessionKey  String   @unique
+  userId      String?
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  @@index([firstSeenAt])
+  @@index([lastSeenAt])
+}
+
 model Order {
   id              String      @id @default(cuid())
   email           String
