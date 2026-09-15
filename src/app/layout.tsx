@@ -24,6 +24,10 @@ export const metadata: Metadata = {
   },
   description:
     "Discover custom LEGO® MOCs and unique building instructions from Badlands Bricks.",
+  icons: {
+    icon: [{ url: "/brand/logo.png", type: "image/png" }],
+    apple: [{ url: "/brand/logo.png", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({
