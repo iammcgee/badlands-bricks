@@ -1,8 +1,10 @@
 import "dotenv/config";
 import { PrismaClient, type Prisma } from "@prisma/client";
+import bcrypt from "bcryptjs";
 import { mkdirSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { publishApprovedMocToBuild } from "../src/lib/moc-publish";
+import { PRIMARY_OWNER_EMAIL } from "../src/lib/owner";
 
 const prisma = new PrismaClient();
 
@@ -20,6 +22,9 @@ const products = [
 ];
 
 const WESLEY_EMAIL = "wesleybarcus@icloud.com";
+const REAGAN_EMAIL = "reagan.steen@icloud.com";
+/** Initial password for Reagan's admin login — change in Account Settings after first sign-in. */
+const REAGAN_BOOTSTRAP_PASSWORD = "dirtywhiteboy";
 
 function ensurePlaceholderPdf(relativePath: string, title: string) {
   const fullPath = join(process.cwd(), relativePath);
@@ -321,14 +326,39 @@ async function main() {
     data: { includedInPlan: true },
   });
 
-  const ownerEmails = [WESLEY_EMAIL, "canaanmcgee@gmail.com"];
+  const ownerEmails = [WESLEY_EMAIL, PRIMARY_OWNER_EMAIL, REAGAN_EMAIL];
   const promoted = await prisma.user.updateMany({
     where: { email: { in: ownerEmails } },
     data: { role: "admin" },
   });
 
+  const reaganPasswordHash = await bcrypt.hash(REAGAN_BOOTSTRAP_PASSWORD, 10);
+  const existingReagan = await prisma.user.findUnique({
+    where: { email: REAGAN_EMAIL },
+    select: { id: true },
+  });
+  const reagan = existingReagan
+    ? await prisma.user.update({
+        where: { email: REAGAN_EMAIL },
+        data: {
+          role: "admin",
+          // One-time bootstrap so he can sign in; later deploys only keep the admin role.
+          passwordHash: reaganPasswordHash,
+        },
+        select: { id: true, email: true },
+      })
+    : await prisma.user.create({
+        data: {
+          email: REAGAN_EMAIL,
+          name: "Reagan Steen",
+          passwordHash: reaganPasswordHash,
+          role: "admin",
+        },
+        select: { id: true, email: true },
+      });
+
   console.log(
-    `Seeded creator + ${products.length} catalog product(s). Marked ${planMarked.count} plan build(s). Promoted ${promoted.count} owner admin(s).`,
+    `Seeded creator + ${products.length} catalog product(s). Marked ${planMarked.count} plan build(s). Promoted ${promoted.count} owner admin(s). Ensured admin ${reagan.email}.`,
   );
 }
 

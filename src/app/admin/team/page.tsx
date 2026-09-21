@@ -11,6 +11,7 @@ import {
   countFoundingMembers,
   getFoundingMemberLimit,
 } from "@/lib/founding-members";
+import { canRemoveAdmins } from "@/lib/owner";
 import { PLAN_ACCESS_STATUSES } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 
@@ -167,6 +168,7 @@ export default async function AdminTeamPage({
   });
 
   const canManage = access.role === "admin";
+  const canStripAdmins = canManage && canRemoveAdmins(access);
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-10 md:px-8">
@@ -326,6 +328,11 @@ export default async function AdminTeamPage({
       {query.error === "forbidden" && (
         <p className="text-sm text-red-400">Only admins can manage the team.</p>
       )}
+      {query.error === "ownerOnly" && (
+        <p className="text-sm text-red-400">
+          Only the site owner can remove or delete admin accounts.
+        </p>
+      )}
       {query.error === "invalid" && (
         <p className="text-sm text-red-400">
           Invalid email/role, or password must be at least 6 characters.
@@ -357,24 +364,30 @@ export default async function AdminTeamPage({
               </p>
             </div>
             {canManage ? (
-              <form action={setStaffRoleAction} className="flex gap-2">
-                <input type="hidden" name="email" value={member.email} />
-                <select
-                  name="role"
-                  defaultValue={member.role}
-                  className="border border-white/20 bg-black px-3 py-2 text-sm text-white"
-                >
-                  <option value="admin">admin</option>
-                  <option value="reviewer">reviewer</option>
-                  <option value="user">user (remove)</option>
-                </select>
-                <button
-                  type="submit"
-                  className="border border-brand-orange px-3 py-2 text-xs tracking-[0.12em] text-brand-orange"
-                >
-                  SAVE
-                </button>
-              </form>
+              member.role === "admin" && !canStripAdmins ? (
+                <span className="text-xs uppercase tracking-[0.12em] text-white/45">
+                  admin · locked
+                </span>
+              ) : (
+                <form action={setStaffRoleAction} className="flex gap-2">
+                  <input type="hidden" name="email" value={member.email} />
+                  <select
+                    name="role"
+                    defaultValue={member.role}
+                    className="border border-white/20 bg-black px-3 py-2 text-sm text-white"
+                  >
+                    <option value="admin">admin</option>
+                    <option value="reviewer">reviewer</option>
+                    <option value="user">user (remove)</option>
+                  </select>
+                  <button
+                    type="submit"
+                    className="border border-brand-orange px-3 py-2 text-xs tracking-[0.12em] text-brand-orange"
+                  >
+                    SAVE
+                  </button>
+                </form>
+              )
             ) : (
               <span className="text-xs uppercase text-white/40">{member.role}</span>
             )}
@@ -458,6 +471,9 @@ export default async function AdminTeamPage({
             <h2 className="font-display text-2xl text-white">Delete account</h2>
             <p className="mt-2 text-sm text-white/60">
               Permanently removes the account so that email can sign up again.
+              {canStripAdmins
+                ? ""
+                : " Admin accounts can only be deleted by the site owner."}
             </p>
             <form
               action={deleteUserAccountAction}
