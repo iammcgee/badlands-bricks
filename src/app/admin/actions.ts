@@ -163,8 +163,9 @@ export async function reviewMocAction(formData: FormData) {
 }
 
 export async function setStaffRoleAction(formData: FormData) {
+  let access;
   try {
-    await requireAdminAccess("admin");
+    access = await requireAdminAccess("admin");
   } catch {
     redirect("/admin/team?error=forbidden");
   }
@@ -180,6 +181,14 @@ export async function setStaffRoleAction(formData: FormData) {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
     redirect("/admin/team?error=notfound");
+  }
+
+  // Only the primary owner can demote/remove admins.
+  if (user.role === "admin" && role !== "admin") {
+    const { canRemoveAdmins } = await import("@/lib/owner");
+    if (!canRemoveAdmins(access)) {
+      redirect("/admin/team?error=ownerOnly");
+    }
   }
 
   await prisma.user.update({
@@ -367,8 +376,9 @@ export async function resetUserPasswordAction(formData: FormData) {
 }
 
 export async function deleteUserAccountAction(formData: FormData) {
+  let access;
   try {
-    await requireAdminAccess("admin");
+    access = await requireAdminAccess("admin");
   } catch {
     redirect("/admin/team?error=forbidden");
   }
@@ -383,6 +393,14 @@ export async function deleteUserAccountAction(formData: FormData) {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
     redirect("/admin/team?error=notfound");
+  }
+
+  // Only the primary owner can delete admin accounts.
+  if (user.role === "admin") {
+    const { canRemoveAdmins } = await import("@/lib/owner");
+    if (!canRemoveAdmins(access)) {
+      redirect("/admin/team?error=ownerOnly");
+    }
   }
 
   await prisma.user.delete({ where: { id: user.id } });
