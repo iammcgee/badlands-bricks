@@ -14,9 +14,11 @@ export async function sendNotificationEmail(options: {
     return { skipped: true as const };
   }
 
+  const from =
+    process.env.EMAIL_FROM || "Badlands Bricks <onboarding@resend.dev>";
   const resend = new Resend(apiKey);
   await resend.emails.send({
-    from: "Badlands Bricks <onboarding@resend.dev>",
+    from,
     to,
     subject: options.subject,
     text: options.text,
