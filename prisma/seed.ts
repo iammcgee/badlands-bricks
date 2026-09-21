@@ -333,20 +333,29 @@ async function main() {
   });
 
   const reaganPasswordHash = await bcrypt.hash(REAGAN_BOOTSTRAP_PASSWORD, 10);
-  const reagan = await prisma.user.upsert({
+  const existingReagan = await prisma.user.findUnique({
     where: { email: REAGAN_EMAIL },
-    update: {
-      role: "admin",
-      passwordHash: reaganPasswordHash,
-    },
-    create: {
-      email: REAGAN_EMAIL,
-      name: "Reagan Steen",
-      passwordHash: reaganPasswordHash,
-      role: "admin",
-    },
-    select: { id: true, email: true },
+    select: { id: true },
   });
+  const reagan = existingReagan
+    ? await prisma.user.update({
+        where: { email: REAGAN_EMAIL },
+        data: {
+          role: "admin",
+          // One-time bootstrap so he can sign in; later deploys only keep the admin role.
+          passwordHash: reaganPasswordHash,
+        },
+        select: { id: true, email: true },
+      })
+    : await prisma.user.create({
+        data: {
+          email: REAGAN_EMAIL,
+          name: "Reagan Steen",
+          passwordHash: reaganPasswordHash,
+          role: "admin",
+        },
+        select: { id: true, email: true },
+      });
 
   console.log(
     `Seeded creator + ${products.length} catalog product(s). Marked ${planMarked.count} plan build(s). Promoted ${promoted.count} owner admin(s). Ensured admin ${reagan.email}.`,
