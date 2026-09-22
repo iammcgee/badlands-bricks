@@ -149,14 +149,27 @@ export default async function AdminMocDetailPage({
           Could not save review. Add notes and choose a decision.
         </p>
       ) : null}
-      {submission.product?.isActive ? (
+      {submission.product ? (
         <p className="border border-white/15 px-4 py-3 text-sm text-white/70">
-          Live in Build as{" "}
+          {submission.product.isActive ? (
+            <>
+              Live in Build as{" "}
+              <Link
+                href={`/build/${submission.product.slug}`}
+                className="text-brand-orange hover:underline"
+              >
+                /build/{submission.product.slug}
+              </Link>
+              {" · "}
+            </>
+          ) : (
+            <>Hidden from Build · </>
+          )}
           <Link
-            href={`/build/${submission.product.slug}`}
+            href={`/admin/products/${submission.product.id}`}
             className="text-brand-orange hover:underline"
           >
-            /build/{submission.product.slug}
+            Edit listing, photos &amp; PDF
           </Link>
         </p>
       ) : null}
