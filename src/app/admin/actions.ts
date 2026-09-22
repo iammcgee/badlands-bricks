@@ -280,19 +280,32 @@ export async function updateProductAction(formData: FormData) {
     priceCents = resolved.priceCents;
   }
 
+  const youtubeUrl = normalizeYoutubeUrl(youtubeRaw);
+
   const updated = await prisma.product.update({
     where: { id },
     data: {
       name,
       slug,
       description,
-      youtubeUrl: normalizeYoutubeUrl(youtubeRaw),
+      youtubeUrl,
       creatorId,
       priceCents,
       isActive,
       includedInPlan,
     },
   });
+
+  if (existing.mocSubmissionId) {
+    await prisma.mocSubmission.update({
+      where: { id: existing.mocSubmissionId },
+      data: {
+        mocName: name,
+        youtubeUrl,
+      },
+    });
+    revalidatePath(`/admin/mocs/${existing.mocSubmissionId}`);
+  }
 
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${id}`);

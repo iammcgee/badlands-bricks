@@ -4,6 +4,7 @@ import {
   deleteProductAction,
   updateProductAction,
 } from "@/app/admin/actions";
+import { AdminProductMediaEditor } from "@/components/AdminProductMediaEditor";
 import { getAdminAccess } from "@/lib/admin";
 import { parseImages } from "@/lib/products";
 import { prisma } from "@/lib/prisma";
@@ -71,7 +72,8 @@ export default async function AdminProductEditPage({
           EDIT MOC
         </h1>
         <p className="mt-2 text-white/60">
-          Change what shoppers see in Build, hide it, or remove it entirely.
+          Change what shoppers see in Build — listing details, photos,
+          instructions PDF — or hide and remove it.
         </p>
       </div>
 
@@ -202,23 +204,6 @@ export default async function AdminProductEditPage({
           Include in membership (MEMBERS ONLY — not sold individually)
         </label>
 
-        {images.length > 0 ? (
-          <div>
-            <p className="mb-2 text-sm text-white/50">Current photos</p>
-            <div className="grid grid-cols-3 gap-2">
-              {images.slice(0, 6).map((src) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={src}
-                  src={src}
-                  alt=""
-                  className="aspect-[4/3] w-full object-cover bg-neutral-900"
-                />
-              ))}
-            </div>
-          </div>
-        ) : null}
-
         <p className="text-xs text-white/40">
           {product._count.favorites} like
           {product._count.favorites === 1 ? "" : "s"} ·{" "}
@@ -233,6 +218,13 @@ export default async function AdminProductEditPage({
           SAVE CHANGES
         </button>
       </form>
+
+      <AdminProductMediaEditor
+        productId={product.id}
+        productName={product.name}
+        currentImages={images}
+        currentPdfUrl={product.downloadFilePath}
+      />
 
       <form
         action={deleteProductAction}
