@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { MembersOnlyBadge } from "@/components/MembersOnlyBadge";
+import { ProductComments } from "@/components/ProductComments";
 import { ProductGallery } from "@/components/ProductGallery";
 import { ProductPurchasePanel } from "@/components/ProductPurchasePanel";
 import { YoutubeEmbed } from "@/components/YoutubeEmbed";
@@ -36,6 +37,19 @@ export default async function ProductPage({
     include: {
       creator: true,
       _count: { select: { favorites: true } },
+      comments: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              avatarMime: true,
+              updatedAt: true,
+            },
+          },
+        },
+      },
     },
   });
   if (!record || !record.isActive) notFound();
@@ -59,6 +73,18 @@ export default async function ProductPage({
 
   const product = toProductView(record, favoritedByMe);
   const embedUrl = youtubeEmbedUrl(product.youtubeUrl);
+  const commentViews = record.comments.map((comment) => ({
+    id: comment.id,
+    body: comment.body,
+    createdAt: comment.createdAt.toISOString(),
+    userId: comment.userId,
+    authorName: comment.user.name,
+    authorImage: comment.user.avatarMime
+      ? `/api/avatars/${comment.user.id}?v=${comment.user.updatedAt.getTime()}`
+      : null,
+  }));
+  const isStaff =
+    session?.user?.role === "admin" || session?.user?.role === "reviewer";
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 md:px-8">
@@ -147,6 +173,15 @@ export default async function ProductPage({
           </p>
         </div>
       </div>
+
+      <ProductComments
+        productId={product.id}
+        productSlug={product.slug}
+        initialComments={commentViews}
+        signedIn={Boolean(session?.user)}
+        currentUserId={session?.user?.id}
+        isStaff={isStaff}
+      />
     </div>
   );
 }
