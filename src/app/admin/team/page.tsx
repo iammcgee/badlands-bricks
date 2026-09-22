@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import {
   deleteUserAccountAction,
   resetUserPasswordAction,
+  setFoundingMemberAction,
   setStaffRoleAction,
 } from "@/app/admin/actions";
 import { getAdminAccess } from "@/lib/admin";
@@ -29,6 +30,9 @@ export default async function AdminTeamPage({
     error?: string;
     passwordReset?: string;
     deleted?: string;
+    foundingOn?: string;
+    foundingOff?: string;
+    n?: string;
     q?: string;
     access?: string;
   }>;
@@ -314,6 +318,17 @@ export default async function AdminTeamPage({
       {query.passwordReset && (
         <p className="text-sm text-brand-orange">Password reset.</p>
       )}
+      {query.foundingOn && (
+        <p className="text-sm text-brand-orange">
+          Founding member enabled
+          {query.n ? ` (#${query.n})` : ""}.
+        </p>
+      )}
+      {query.foundingOff && (
+        <p className="text-sm text-brand-orange">
+          Founding member access turned off for that account.
+        </p>
+      )}
       {query.deleted && (
         <p className="text-sm text-brand-orange">
           Account deleted. They can sign up again with that email.
@@ -336,6 +351,11 @@ export default async function AdminTeamPage({
       {query.error === "invalid" && (
         <p className="text-sm text-red-400">
           Invalid email/role, or password must be at least 6 characters.
+        </p>
+      )}
+      {query.error === "foundingFull" && (
+        <p className="text-sm text-red-400">
+          Founding member cohort is full. Turn one off before enabling another.
         </p>
       )}
 
@@ -468,6 +488,43 @@ export default async function AdminTeamPage({
           </section>
 
           <section className="border border-white/15 p-5">
+            <h2 className="font-display text-2xl text-white">
+              Founding member access
+            </h2>
+            <p className="mt-2 text-sm text-white/60">
+              Turn founding-member status on or off for a specific account
+              (for example a test login). This only changes the founding
+              badge/slot — it does not cancel Badlands Plan membership.
+            </p>
+            <form
+              action={setFoundingMemberAction}
+              className="mt-5 grid gap-3 sm:grid-cols-[1fr_160px_auto]"
+            >
+              <input
+                name="email"
+                type="email"
+                required
+                placeholder="operations@example.com"
+                className="border border-white/20 bg-black px-3 py-2 text-white outline-none focus:border-brand-orange"
+              />
+              <select
+                name="enabled"
+                defaultValue="0"
+                className="border border-white/20 bg-black px-3 py-2 text-white"
+              >
+                <option value="0">Turn off</option>
+                <option value="1">Turn on</option>
+              </select>
+              <button
+                type="submit"
+                className="border border-brand-orange px-4 py-2 text-xs font-bold tracking-[0.12em] text-brand-orange"
+              >
+                UPDATE
+              </button>
+            </form>
+          </section>
+
+          <section className="border border-white/15 p-5">
             <h2 className="font-display text-2xl text-white">Delete account</h2>
             <p className="mt-2 text-sm text-white/60">
               Permanently removes the account so that email can sign up again.
@@ -593,6 +650,9 @@ export default async function AdminTeamPage({
                   <th className="px-4 py-3 font-normal">Role</th>
                   <th className="px-4 py-3 font-normal">Access</th>
                   <th className="px-4 py-3 font-normal">Joined</th>
+                  {canManage ? (
+                    <th className="px-4 py-3 font-normal">Founding</th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
@@ -646,6 +706,26 @@ export default async function AdminTeamPage({
                       <td className="px-4 py-3 whitespace-nowrap text-white/55">
                         {user.createdAt.toLocaleDateString()}
                       </td>
+                      {canManage ? (
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <form action={setFoundingMemberAction}>
+                            <input type="hidden" name="email" value={user.email} />
+                            <input
+                              type="hidden"
+                              name="enabled"
+                              value={user.foundingMemberNumber != null ? "0" : "1"}
+                            />
+                            <button
+                              type="submit"
+                              className="border border-white/25 px-2 py-1 text-[10px] tracking-[0.1em] text-white/70 hover:border-brand-orange hover:text-brand-orange"
+                            >
+                              {user.foundingMemberNumber != null
+                                ? "TURN OFF"
+                                : "TURN ON"}
+                            </button>
+                          </form>
+                        </td>
+                      ) : null}
                     </tr>
                   );
                 })}
