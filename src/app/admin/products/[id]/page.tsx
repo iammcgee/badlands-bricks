@@ -72,7 +72,8 @@ export default async function AdminProductEditPage({
           EDIT MOC
         </h1>
         <p className="mt-2 text-white/60">
-          Change what shoppers see in Build, hide it, or remove it entirely.
+          Change what shoppers see in Build — listing details, photos,
+          instructions PDF — or hide and remove it.
         </p>
       </div>
 
