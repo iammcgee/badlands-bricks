@@ -1,6 +1,6 @@
 import { existsSync, statSync } from "fs";
 import { readFile } from "fs/promises";
-import { normalize, resolve } from "path";
+import { join, normalize, resolve } from "path";
 import { NextResponse } from "next/server";
 import { getAdminAccess } from "@/lib/admin";
 import { isRemoteMocPath } from "@/lib/moc-files";
@@ -25,12 +25,12 @@ export async function GET(request: Request) {
   }
 
   const uploadsRoots = [
-    resolve(process.cwd(), "uploads"),
-    resolve("/tmp", "badlands-uploads"),
+    join(/* turbopackIgnore: true */ process.cwd(), "uploads"),
+    join("/tmp", "badlands-uploads"),
   ];
   const absolute = relative.startsWith("/")
-    ? resolve(normalize(relative))
-    : resolve(process.cwd(), normalize(relative));
+    ? resolve(/* turbopackIgnore: true */ normalize(relative))
+    : join(/* turbopackIgnore: true */ process.cwd(), normalize(relative));
 
   const allowed = uploadsRoots.some(
     (root) => absolute === root || absolute.startsWith(root + "/"),
