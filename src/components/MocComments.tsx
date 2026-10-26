@@ -102,7 +102,8 @@ export function MocComments({
       </h2>
       <p className="mt-2 text-sm text-white/55">
         {comments.length} comment{comments.length === 1 ? "" : "s"} from the
-        Badlands community. Accounts can like this MOC and leave a comment.
+        Badlands community. Keep it about the build — no photos, slurs, or
+        nasty stuff.
       </p>
 
       {signedIn ? (
@@ -117,7 +118,7 @@ export function MocComments({
               required
               maxLength={COMMENT_MAX_LENGTH}
               rows={4}
-              placeholder="What do you think of this build?"
+              placeholder="What do you think of this build? Text only — keep it civil."
               className="w-full border border-white/25 bg-neutral-900 px-4 py-3 text-white outline-none placeholder:text-white/40 focus:border-brand-orange"
             />
           </label>

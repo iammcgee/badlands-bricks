@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
+import { moderateComment } from "@/lib/comment-guard";
 import {
   COMMENT_COOLDOWN_MS,
   COMMENT_MAX_LENGTH,
@@ -53,7 +54,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { productId, body } = createSchema.parse(await request.json());
+    const parsed = createSchema.parse(await request.json());
+    const moderated = moderateComment(parsed.body);
+    if (!moderated.ok) {
+      return NextResponse.json({ error: moderated.error }, { status: 400 });
+    }
+    const { productId } = parsed;
+    const body = moderated.body;
     const product = await prisma.product.findUnique({
       where: { id: productId },
       select: { id: true, isActive: true },
