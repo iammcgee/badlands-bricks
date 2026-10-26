@@ -30,7 +30,7 @@ export default async function BuildPage({
     },
     include: {
       creator: true,
-      _count: { select: { favorites: true } },
+      _count: { select: { favorites: true, comments: true } },
     },
     orderBy: { name: "asc" },
   });

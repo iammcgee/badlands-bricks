@@ -2,10 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { MembersOnlyBadge } from "@/components/MembersOnlyBadge";
+import { MocComments } from "@/components/MocComments";
 import { ProductGallery } from "@/components/ProductGallery";
 import { ProductPurchasePanel } from "@/components/ProductPurchasePanel";
 import { YoutubeEmbed } from "@/components/YoutubeEmbed";
+import { isStaffRole } from "@/lib/admin";
 import { auth } from "@/lib/auth";
+import { commentAuthorSelect, toCommentView } from "@/lib/comments";
 import { getPlanPriceLabel, userHasPlanAccess } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, toProductView } from "@/lib/products";
@@ -35,7 +38,12 @@ export default async function ProductPage({
     where: { slug },
     include: {
       creator: true,
-      _count: { select: { favorites: true } },
+      _count: { select: { favorites: true, comments: true } },
+      comments: {
+        include: { user: { select: commentAuthorSelect } },
+        orderBy: { createdAt: "desc" },
+        take: 200,
+      },
     },
   });
   if (!record || !record.isActive) notFound();
@@ -146,6 +154,16 @@ export default async function ProductPage({
               : "Digital building instructions delivered after checkout."}
           </p>
         </div>
+      </div>
+
+      <div className="mt-16 max-w-3xl">
+        <MocComments
+          productId={product.id}
+          initialComments={record.comments.map(toCommentView)}
+          signedIn={Boolean(session?.user)}
+          currentUserId={session?.user?.id ?? null}
+          isStaff={isStaffRole(session?.user?.role)}
+        />
       </div>
     </div>
   );

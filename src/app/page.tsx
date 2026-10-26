@@ -14,7 +14,7 @@ export default async function HomePage() {
     where: { isActive: true },
     include: {
       creator: true,
-      _count: { select: { favorites: true } },
+      _count: { select: { favorites: true, comments: true } },
     },
     orderBy: { name: "asc" },
   });

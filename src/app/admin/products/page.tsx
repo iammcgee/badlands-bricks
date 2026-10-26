@@ -26,7 +26,7 @@ export default async function AdminProductsPage({
           builderEmail: true,
         },
       },
-      _count: { select: { favorites: true, orderItems: true } },
+      _count: { select: { favorites: true, comments: true, orderItems: true } },
     },
     orderBy: [{ isActive: "desc" }, { name: "asc" }],
   });
@@ -107,6 +107,8 @@ export default async function AdminProductsPage({
                 <p className="mt-1 text-xs text-white/40">
                   {product._count.favorites} like
                   {product._count.favorites === 1 ? "" : "s"} ·{" "}
+                  {product._count.comments} comment
+                  {product._count.comments === 1 ? "" : "s"} ·{" "}
                   {product._count.orderItems} order line
                   {product._count.orderItems === 1 ? "" : "s"}
                   {product.mocSubmission

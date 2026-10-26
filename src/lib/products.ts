@@ -22,6 +22,7 @@ export type ProductView = {
   creatorId: string;
   creator?: CreatorView;
   favoriteCount?: number;
+  commentCount?: number;
   favoritedByMe?: boolean;
 };
 
@@ -47,7 +48,10 @@ export function toCreatorView(creator: Creator): CreatorView {
 }
 
 export function toProductView(
-  product: Product & { creator?: Creator; _count?: { favorites: number } },
+  product: Product & {
+    creator?: Creator;
+    _count?: { favorites: number; comments?: number };
+  },
   favoritedByMe = false,
 ): ProductView {
   return {
@@ -64,6 +68,7 @@ export function toProductView(
     creatorId: product.creatorId,
     creator: product.creator ? toCreatorView(product.creator) : undefined,
     favoriteCount: product._count?.favorites ?? 0,
+    commentCount: product._count?.comments ?? 0,
     favoritedByMe,
   };
 }

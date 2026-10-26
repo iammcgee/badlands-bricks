@@ -21,7 +21,7 @@ export default async function FavoritesPage() {
       product: {
         include: {
           creator: true,
-          _count: { select: { favorites: true } },
+          _count: { select: { favorites: true, comments: true } },
         },
       },
     },

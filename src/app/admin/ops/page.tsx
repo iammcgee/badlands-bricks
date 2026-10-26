@@ -19,7 +19,7 @@ export default async function AdminOpsPage({
   const query = await searchParams;
   const since = new Date(Date.now() - 2 * 60 * 1000);
 
-  const [orders, contacts, products, creators, onlineCount, favoriteCount, followCount] =
+  const [orders, contacts, products, creators, onlineCount, favoriteCount, followCount, commentCount] =
     await Promise.all([
       prisma.order.findMany({
         include: { items: { include: { product: true } } },
@@ -38,6 +38,7 @@ export default async function AdminOpsPage({
       prisma.presenceSession.count({ where: { lastSeenAt: { gte: since } } }),
       prisma.favorite.count(),
       prisma.follow.count(),
+      prisma.productComment.count(),
     ]);
 
   return (
@@ -58,7 +59,7 @@ export default async function AdminOpsPage({
         <p className="text-sm text-red-400">Admin role required for that action.</p>
       )}
 
-      <section id="system" className="grid gap-3 sm:grid-cols-3">
+      <section id="system" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="/admin/team"
           className="border border-white/15 px-4 py-4 transition hover:border-brand-orange"
@@ -74,6 +75,10 @@ export default async function AdminOpsPage({
         <div className="border border-white/15 px-4 py-4">
           <p className="text-xs tracking-[0.14em] text-white/50">FOLLOWS</p>
           <p className="mt-1 font-display text-3xl text-white">{followCount}</p>
+        </div>
+        <div className="border border-white/15 px-4 py-4">
+          <p className="text-xs tracking-[0.14em] text-white/50">COMMENTS</p>
+          <p className="mt-1 font-display text-3xl text-white">{commentCount}</p>
         </div>
       </section>
 
