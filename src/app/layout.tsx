@@ -4,6 +4,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { CartProvider } from "@/components/CartProvider";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { ensureCommentsTable } from "@/lib/comments";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -35,11 +36,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  try {
+    await ensureCommentsTable();
+  } catch (error) {
+    console.error("ensureCommentsTable failed", error);
+  }
+
   return (
     <html lang="en" className={`${manrope.variable} ${bebas.variable} h-full`}>
       <body className="flex min-h-full flex-col bg-black font-sans text-white antialiased">

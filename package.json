@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && node scripts/migrate-with-retry.mjs && tsx prisma/seed.ts && next build",
+    "build": "prisma generate && node scripts/migrate-with-retry.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
@@ -24,10 +24,12 @@
     "next": "16.3.0",
     "next-auth": "^5.0.0-beta.32",
     "pdf-lib": "^1.17.1",
+    "prisma": "^6.19.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "resend": "^6.18.1",
     "stripe": "^22.4.0",
+    "tsx": "^4.23.8",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -38,9 +40,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
-    "prisma": "^6.19.3",
     "tailwindcss": "^4",
-    "tsx": "^4.23.8",
     "typescript": "^5"
   }
 }

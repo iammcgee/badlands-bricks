@@ -6,6 +6,7 @@ import {
   COMMENT_MAX_LENGTH,
   COMMENT_MIN_LENGTH,
   commentAuthorSelect,
+  ensureCommentsTable,
   toCommentView,
 } from "@/lib/comments";
 import { prisma } from "@/lib/prisma";
@@ -20,6 +21,7 @@ const createSchema = z.object({
 });
 
 export async function GET(request: Request) {
+  await ensureCommentsTable();
   const productId = new URL(request.url).searchParams.get("productId")?.trim();
   if (!productId) {
     return NextResponse.json({ error: "productId is required" }, { status: 400 });
@@ -44,6 +46,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  await ensureCommentsTable();
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Login required" }, { status: 401 });

@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     },
   },
   outputFileTracingExcludes: {
-    "*": ["./uploads/**", "./product-files/**", "./.git/**"],
+    "/*": ["./uploads/**", "./product-files/**", "./.git/**"],
   },
 };
 
