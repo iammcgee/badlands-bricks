@@ -35,7 +35,7 @@ export default async function CreatorPage({
         where: { isActive: true },
         include: {
           creator: true,
-          _count: { select: { favorites: true } },
+          _count: { select: { favorites: true, comments: true } },
         },
         orderBy: { name: "asc" },
       },

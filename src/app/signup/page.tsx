@@ -10,8 +10,9 @@ export default function SignupPage() {
         SIGN UP
       </h1>
       <p className="mt-3 text-white/70">
-        Create a free account to save favorites, follow creators, and submit
-        MOCs. Want to sell your builds or unlock members-only MOCs? Join the{" "}
+        Create a free account to like MOCs, leave comments, follow creators, and
+        submit builds. Want to sell your builds or unlock members-only MOCs?
+        Join the{" "}
         <a href="/plan" className="text-brand-orange hover:underline">
           Badlands Plan
         </a>{" "}

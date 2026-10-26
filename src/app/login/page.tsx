@@ -15,7 +15,7 @@ export default async function LoginPage({
     <div className="mx-auto max-w-md px-4 py-16">
       <h1 className="font-display text-4xl tracking-[0.08em] text-white">LOGIN</h1>
       <p className="mt-3 text-white/70">
-        Sign in to like MOCs and follow your favorite creators.
+        Sign in to like MOCs, leave comments, and follow your favorite creators.
       </p>
       {resetOk && (
         <p className="mt-4 border border-brand-orange/40 bg-brand-orange/10 px-4 py-3 text-sm text-white">

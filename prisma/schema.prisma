@@ -20,6 +20,7 @@ model User {
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   favorites           Favorite[]
+  comments            ProductComment[]
   follows             Follow[]
   presence            PresenceSession[]
   submissions         MocSubmission[]   @relation("MocSubmitter")
@@ -72,6 +73,7 @@ model Product {
   mocSubmission    MocSubmission? @relation(fields: [mocSubmissionId], references: [id], onDelete: SetNull)
   orderItems       OrderItem[]
   favorites        Favorite[]
+  comments         ProductComment[]
 }
 
 model Favorite {
@@ -83,6 +85,20 @@ model Favorite {
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
+}
+
+model ProductComment {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([productId, createdAt])
+  @@index([userId])
 }
 
 model Follow {

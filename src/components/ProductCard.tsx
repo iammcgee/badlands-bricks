@@ -50,6 +50,13 @@ export function ProductCard({
               BY {product.creator.displayName.toUpperCase()}
             </p>
           )}
+          <p className="mt-1 text-xs tracking-[0.08em] text-white/40">
+            {product.favoriteCount ?? 0} like
+            {(product.favoriteCount ?? 0) === 1 ? "" : "s"}
+            {" · "}
+            {product.commentCount ?? 0} comment
+            {(product.commentCount ?? 0) === 1 ? "" : "s"}
+          </p>
         </div>
       </Link>
       <div className="absolute right-3 top-3 z-10 rounded bg-black/70 px-2 py-1">
