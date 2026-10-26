@@ -3,6 +3,6 @@
 !.env.example
 node_modules
 .next
-uploads
+/uploads
 prisma/dev.db
 prisma/dev.db-journal

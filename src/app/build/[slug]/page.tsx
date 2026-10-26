@@ -8,7 +8,11 @@ import { ProductPurchasePanel } from "@/components/ProductPurchasePanel";
 import { YoutubeEmbed } from "@/components/YoutubeEmbed";
 import { isStaffRole } from "@/lib/admin";
 import { auth } from "@/lib/auth";
-import { commentAuthorSelect, toCommentView } from "@/lib/comments";
+import {
+  commentAuthorSelect,
+  ensureCommentsTable,
+  toCommentView,
+} from "@/lib/comments";
 import { getPlanPriceLabel, userHasPlanAccess } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, toProductView } from "@/lib/products";
@@ -33,6 +37,7 @@ export default async function ProductPage({
 }) {
   const { slug } = await params;
   const session = await auth();
+  await ensureCommentsTable();
 
   const record = await prisma.product.findUnique({
     where: { slug },
