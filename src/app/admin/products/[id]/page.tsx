@@ -127,6 +127,20 @@ export default async function AdminProductEditPage({
           />
         </label>
         <label className="block space-y-2 text-sm">
+          <span className="text-white/70">YouTube video link (optional)</span>
+          <input
+            name="youtubeUrl"
+            type="url"
+            defaultValue={product.youtubeUrl || ""}
+            placeholder="https://www.youtube.com/watch?v=..."
+            className="w-full border border-white/20 bg-black px-3 py-2 text-white outline-none focus:border-brand-orange"
+          />
+          <span className="block text-xs text-white/45">
+            Paste a YouTube watch or youtu.be link to embed it on the Build page
+            (for example Wesley&apos;s MOC video). Leave blank for no video.
+          </span>
+        </label>
+        <label className="block space-y-2 text-sm">
           <span className="text-white/70">URL slug</span>
           <input
             name="slug"
@@ -159,19 +173,6 @@ export default async function AdminProductEditPage({
             defaultValue={product.description}
             className="w-full border border-white/20 bg-black px-3 py-2 text-white outline-none focus:border-brand-orange"
           />
-        </label>
-        <label className="block space-y-2 text-sm">
-          <span className="text-white/70">YouTube video link (optional)</span>
-          <input
-            name="youtubeUrl"
-            type="url"
-            defaultValue={product.youtubeUrl || ""}
-            placeholder="https://www.youtube.com/watch?v=..."
-            className="w-full border border-white/20 bg-black px-3 py-2 text-white outline-none focus:border-brand-orange"
-          />
-          <span className="block text-xs text-white/45">
-            Paste a YouTube link to embed the video on the Build page.
-          </span>
         </label>
         <label className="block space-y-2 text-sm">
           <span className="text-white/70">Creator</span>

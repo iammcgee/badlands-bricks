@@ -39,8 +39,8 @@ export default async function AdminProductsPage({
             BUILD CATALOG
           </h1>
           <p className="mt-2 text-white/60">
-            Edit, hide, or remove MOCs that appear in Build — including
-            community submissions after approval.
+            Edit live MOCs (name, YouTube link, price, photos, PDF), hide, or
+            remove them — including community submissions after approval.
           </p>
         </div>
         <Link
@@ -99,6 +99,15 @@ export default async function AdminProductsPage({
                       MEMBERS ONLY
                     </span>
                   ) : null}
+                  {product.youtubeUrl ? (
+                    <span className="border border-white/25 px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-white/70">
+                      YOUTUBE
+                    </span>
+                  ) : (
+                    <span className="border border-white/10 px-2 py-0.5 text-[10px] tracking-[0.12em] text-white/35">
+                      NO VIDEO
+                    </span>
+                  )}
                 </div>
                 <p className="mt-1 text-sm text-white/55">
                   {formatPrice(product.priceCents)} · by{" "}
