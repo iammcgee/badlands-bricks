@@ -69,6 +69,7 @@ export default async function ProductPage({
   const hasPlanAccess = session?.user?.id
     ? await userHasPlanAccess(session.user.id)
     : false;
+  const complimentaryAccess = isStaffRole(session?.user?.role);
 
   const product = toProductView(record, favoritedByMe);
   const embedUrl = youtubeEmbedUrl(product.youtubeUrl);
@@ -131,6 +132,8 @@ export default async function ProductPage({
                     : `${getPlanPriceLabel()} membership`}
                 </p>
               </>
+            ) : complimentaryAccess ? (
+              <p className="text-xl text-white/90">FREE · staff access</p>
             ) : (
               <p className="text-xl text-white/90">
                 {formatPrice(product.priceCents)}
@@ -145,6 +148,7 @@ export default async function ProductPage({
             planPriceLabel={getPlanPriceLabel()}
             hasPlanAccess={hasPlanAccess}
             signedIn={Boolean(session?.user)}
+            complimentaryAccess={complimentaryAccess}
           />
           <div className="mt-3 max-w-md">
             <FavoriteButton
