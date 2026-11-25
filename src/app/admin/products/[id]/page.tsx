@@ -4,6 +4,7 @@ import {
   deleteProductAction,
   updateProductAction,
 } from "@/app/admin/actions";
+import { AdminProductMediaEditor } from "@/components/AdminProductMediaEditor";
 import { getAdminAccess } from "@/lib/admin";
 import { parseImages } from "@/lib/products";
 import { prisma } from "@/lib/prisma";
@@ -71,7 +72,8 @@ export default async function AdminProductEditPage({
           EDIT MOC
         </h1>
         <p className="mt-2 text-white/60">
-          Change what shoppers see in Build, hide it, or remove it entirely.
+          Change what shoppers see in Build — listing details, photos,
+          instructions PDF — or hide and remove it.
         </p>
       </div>
 
@@ -125,6 +127,20 @@ export default async function AdminProductEditPage({
           />
         </label>
         <label className="block space-y-2 text-sm">
+          <span className="text-white/70">YouTube video link (optional)</span>
+          <input
+            name="youtubeUrl"
+            type="url"
+            defaultValue={product.youtubeUrl || ""}
+            placeholder="https://www.youtube.com/watch?v=..."
+            className="w-full border border-white/20 bg-black px-3 py-2 text-white outline-none focus:border-brand-orange"
+          />
+          <span className="block text-xs text-white/45">
+            Paste a YouTube watch or youtu.be link to embed it on the Build page
+            (for example Wesley&apos;s MOC video). Leave blank for no video.
+          </span>
+        </label>
+        <label className="block space-y-2 text-sm">
           <span className="text-white/70">URL slug</span>
           <input
             name="slug"
@@ -159,19 +175,6 @@ export default async function AdminProductEditPage({
           />
         </label>
         <label className="block space-y-2 text-sm">
-          <span className="text-white/70">YouTube video link (optional)</span>
-          <input
-            name="youtubeUrl"
-            type="url"
-            defaultValue={product.youtubeUrl || ""}
-            placeholder="https://www.youtube.com/watch?v=..."
-            className="w-full border border-white/20 bg-black px-3 py-2 text-white outline-none focus:border-brand-orange"
-          />
-          <span className="block text-xs text-white/45">
-            Paste a YouTube link to embed the video on the Build page.
-          </span>
-        </label>
-        <label className="block space-y-2 text-sm">
           <span className="text-white/70">Creator</span>
           <select
             name="creatorId"
@@ -202,23 +205,6 @@ export default async function AdminProductEditPage({
           Include in membership (MEMBERS ONLY — not sold individually)
         </label>
 
-        {images.length > 0 ? (
-          <div>
-            <p className="mb-2 text-sm text-white/50">Current photos</p>
-            <div className="grid grid-cols-3 gap-2">
-              {images.slice(0, 6).map((src) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={src}
-                  src={src}
-                  alt=""
-                  className="aspect-[4/3] w-full object-cover bg-neutral-900"
-                />
-              ))}
-            </div>
-          </div>
-        ) : null}
-
         <p className="text-xs text-white/40">
           {product._count.favorites} like
           {product._count.favorites === 1 ? "" : "s"} ·{" "}
@@ -233,6 +219,13 @@ export default async function AdminProductEditPage({
           SAVE CHANGES
         </button>
       </form>
+
+      <AdminProductMediaEditor
+        productId={product.id}
+        productName={product.name}
+        currentImages={images}
+        currentPdfUrl={product.downloadFilePath}
+      />
 
       <form
         action={deleteProductAction}

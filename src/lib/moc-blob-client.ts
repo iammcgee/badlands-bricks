@@ -84,3 +84,45 @@ export async function uploadMocAssets(input: {
 
   return { photoUrls, instructionUrls, pdfUrl };
 }
+
+/** Admin product edits: upload only the pieces that are changing. */
+export async function uploadMocProductMedia(input: {
+  photos?: MocMediaItem[];
+  pdfFile?: File | null;
+  mocName: string;
+  onProgress?: (label: string) => void;
+}) {
+  const stamp = Date.now().toString();
+  const photoUrls: string[] = [];
+  const photos = input.photos || [];
+
+  for (let i = 0; i < photos.length; i += 1) {
+    input.onProgress?.(
+      `Preparing photo ${i + 1} of ${photos.length}…`,
+    );
+    const jpeg = await normalizeMocImageFile(photos[i].file);
+    const named = new File(
+      [jpeg],
+      `photo-${String(i + 1).padStart(2, "0")}-${jpeg.name}`,
+      { type: "image/jpeg" },
+    );
+    input.onProgress?.(
+      `Uploading photo ${i + 1} of ${photos.length} (${formatBytes(named.size)})…`,
+    );
+    photoUrls.push(await uploadOne(named, `${stamp}/photos`));
+  }
+
+  let pdfUrl: string | undefined;
+  if (input.pdfFile) {
+    const pdfName = `${input.mocName.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "moc"}-instructions.pdf`;
+    const named = new File([input.pdfFile], pdfName, {
+      type: "application/pdf",
+    });
+    input.onProgress?.(
+      `Uploading instructions PDF (${formatBytes(named.size)})…`,
+    );
+    pdfUrl = await uploadOne(named, `${stamp}/pdf`);
+  }
+
+  return { photoUrls, pdfUrl };
+}
