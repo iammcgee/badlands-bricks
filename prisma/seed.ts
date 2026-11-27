@@ -289,6 +289,73 @@ async function restoreCommunityBeeBuggy() {
   }
 }
 
+/** Official Badlands Bricks videos for shop listings that lost their YouTube URL. */
+const SHOP_YOUTUBE_VIDEOS = [
+  {
+    label: "Bee Buggy",
+    url: "https://www.youtube.com/watch?v=C-92zxkerzQ",
+    where: {
+      OR: [
+        { slug: "bee-buggy" },
+        { slug: { startsWith: "bee-buggy-" } },
+        { name: { equals: "Bee Buggy", mode: "insensitive" } },
+      ],
+    },
+  },
+  {
+    label: "Max Flex",
+    url: "https://www.youtube.com/watch?v=tMsuKUKDA7k",
+    where: {
+      OR: [
+        { slug: "max-flex" },
+        { slug: { startsWith: "max-flex-" } },
+        { name: { equals: "Max Flex", mode: "insensitive" } },
+      ],
+    },
+  },
+  {
+    label: "Vacuum Engine",
+    url: "https://www.youtube.com/watch?v=DrQBTD2MxCE",
+    where: {
+      OR: [
+        { slug: "vacuum-engine" },
+        { slug: { startsWith: "vacuum-engine-" } },
+        { name: { equals: "Vacuum Engine", mode: "insensitive" } },
+      ],
+    },
+  },
+] as const;
+
+async function restoreShopYoutubeLinks() {
+  for (const video of SHOP_YOUTUBE_VIDEOS) {
+    const products = await prisma.product.findMany({
+      where: video.where,
+      select: { id: true, slug: true, youtubeUrl: true, mocSubmissionId: true },
+    });
+    for (const product of products) {
+      if (!product.youtubeUrl) {
+        await prisma.product.update({
+          where: { id: product.id },
+          data: { youtubeUrl: video.url },
+        });
+        console.log(`Restored ${video.label} YouTube on /build/${product.slug}`);
+      }
+      if (product.mocSubmissionId) {
+        const submission = await prisma.mocSubmission.findUnique({
+          where: { id: product.mocSubmissionId },
+          select: { id: true, youtubeUrl: true },
+        });
+        if (submission && !submission.youtubeUrl) {
+          await prisma.mocSubmission.update({
+            where: { id: submission.id },
+            data: { youtubeUrl: video.url },
+          });
+        }
+      }
+    }
+  }
+}
+
 async function main() {
   mkdirSync(join(process.cwd(), "uploads"), { recursive: true });
   mkdirSync(join(process.cwd(), "product-files"), { recursive: true });
@@ -388,6 +455,8 @@ async function main() {
         },
         select: { id: true, email: true },
       });
+
+  await restoreShopYoutubeLinks();
 
   console.log(
     `Seeded creator + ${products.length} catalog product(s). Marked ${planMarked.count} plan build(s). Promoted ${promoted.count} owner admin(s). Ensured admin ${reagan.email}.`,
