@@ -124,7 +124,8 @@ export async function publishApprovedMocToBuild(
         priceCents,
         description,
         imagesJson: JSON.stringify(images),
-        youtubeUrl: submission.youtubeUrl || null,
+        // Keep a shop YouTube link if the original submission never had one.
+        youtubeUrl: submission.youtubeUrl || existing.youtubeUrl || null,
         downloadFilePath: pdfUrl || existing.downloadFilePath,
         isActive: true,
         creatorId: creator.id,

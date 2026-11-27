@@ -168,7 +168,8 @@ export default async function AdminProductEditPage({
             className="w-full border border-white/20 bg-black px-3 py-2 text-white outline-none focus:border-brand-orange"
           />
           <span className="block text-xs text-white/45">
-            Paste a YouTube link to embed the video on the Build page.
+            Paste a YouTube link to embed the video on the Build page. This
+            stays on the listing even after later site deploys.
           </span>
         </label>
         <label className="block space-y-2 text-sm">

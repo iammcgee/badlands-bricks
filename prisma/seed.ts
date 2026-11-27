@@ -184,6 +184,24 @@ async function restoreCommunityMaxFlex() {
     const isMaxFlex = /max\s*flex/i.test(submission.mocName);
     if (!isWesley && !isMaxFlex) continue;
 
+    const alreadyLive = await prisma.product.findUnique({
+      where: { mocSubmissionId: submission.id },
+      select: { id: true, slug: true, isActive: true },
+    });
+    if (alreadyLive?.isActive) {
+      console.log(
+        `Community MOC "${submission.mocName}" already live at /build/${alreadyLive.slug}; leaving shop edits in place.`,
+      );
+      if (isWesley && isMaxFlex) {
+        restoredSlug =
+          (await claimCleanSlug(alreadyLive.id, "max-flex")) ||
+          alreadyLive.slug;
+      } else if (!restoredSlug && isMaxFlex) {
+        restoredSlug = alreadyLive.slug;
+      }
+      continue;
+    }
+
     const product = await publishApprovedMocToBuild(submission);
     console.log(
       `Restored community MOC "${submission.mocName}" by ${submission.builderName} as /build/${product.slug}`,
@@ -236,6 +254,20 @@ async function restoreCommunityBeeBuggy() {
   let restoredSlug: string | null = null;
   for (const submission of submissions) {
     if (!/bee\s*buggy/i.test(submission.mocName)) continue;
+
+    const alreadyLive = await prisma.product.findUnique({
+      where: { mocSubmissionId: submission.id },
+      select: { id: true, slug: true, isActive: true },
+    });
+    if (alreadyLive?.isActive) {
+      console.log(
+        `Community MOC "${submission.mocName}" already live at /build/${alreadyLive.slug}; leaving shop edits in place.`,
+      );
+      restoredSlug =
+        (await claimCleanSlug(alreadyLive.id, "bee-buggy")) ||
+        alreadyLive.slug;
+      continue;
+    }
 
     const product = await publishApprovedMocToBuild(submission, {
       allowWithoutMembership: true,

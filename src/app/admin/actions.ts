@@ -92,12 +92,12 @@ export async function reviewMocAction(formData: FormData) {
   let shopSlug: string | null = null;
   let publishFailed = false;
   try {
-    if (nextStatus === "approved") {
+    if (decision === "approved") {
       const product = await publishApprovedMocToBuild(submission, {
         priceCents,
       });
       shopSlug = product.slug;
-    } else if (nextStatus === "denied" || nextStatus === "needs_changes") {
+    } else if (decision === "denied" || decision === "needs_changes") {
       await unpublishMocFromBuild(id);
     }
   } catch (error) {
@@ -280,19 +280,28 @@ export async function updateProductAction(formData: FormData) {
     priceCents = resolved.priceCents;
   }
 
+  const youtubeUrl = normalizeYoutubeUrl(youtubeRaw);
+
   const updated = await prisma.product.update({
     where: { id },
     data: {
       name,
       slug,
       description,
-      youtubeUrl: normalizeYoutubeUrl(youtubeRaw),
+      youtubeUrl,
       creatorId,
       priceCents,
       isActive,
       includedInPlan,
     },
   });
+
+  if (existing.mocSubmissionId) {
+    await prisma.mocSubmission.update({
+      where: { id: existing.mocSubmissionId },
+      data: { youtubeUrl },
+    });
+  }
 
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${id}`);
