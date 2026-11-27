@@ -95,3 +95,11 @@ export async function claimFoundingMemberSlot(
   });
   return again?.foundingMemberNumber ?? null;
 }
+
+/** Clear founding-member status for an account (frees the cohort slot). */
+export async function clearFoundingMemberSlot(userId: string) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { foundingMemberNumber: null },
+  });
+}

@@ -375,6 +375,49 @@ export async function resetUserPasswordAction(formData: FormData) {
   redirect("/admin/team?passwordReset=1");
 }
 
+export async function setFoundingMemberAction(formData: FormData) {
+  try {
+    await requireAdminAccess("admin");
+  } catch {
+    redirect("/admin/team?error=forbidden");
+  }
+
+  const email = String(formData.get("email") || "")
+    .trim()
+    .toLowerCase();
+  const enabled = String(formData.get("enabled") || "") === "1";
+  if (!email) {
+    redirect("/admin/team?error=invalid");
+  }
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    redirect("/admin/team?error=notfound");
+  }
+
+  const {
+    claimFoundingMemberSlot,
+    clearFoundingMemberSlot,
+  } = await import("@/lib/founding-members");
+
+  if (enabled) {
+    const number = await claimFoundingMemberSlot(user.id);
+    if (number == null) {
+      redirect("/admin/team?error=foundingFull");
+    }
+    revalidatePath("/admin/team");
+    revalidatePath("/admin");
+    revalidatePath("/plan");
+    redirect(`/admin/team?foundingOn=1&n=${number}`);
+  }
+
+  await clearFoundingMemberSlot(user.id);
+  revalidatePath("/admin/team");
+  revalidatePath("/admin");
+  revalidatePath("/plan");
+  redirect("/admin/team?foundingOff=1");
+}
+
 export async function deleteUserAccountAction(formData: FormData) {
   let access;
   try {
