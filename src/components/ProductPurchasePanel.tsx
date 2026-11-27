@@ -10,6 +10,8 @@ type Props = {
   planPriceLabel: string;
   hasPlanAccess: boolean;
   signedIn: boolean;
+  /** Staff (admin/reviewer) — never pay; always get a direct download when a file exists. */
+  complimentaryAccess?: boolean;
 };
 
 export function ProductPurchasePanel({
@@ -17,9 +19,26 @@ export function ProductPurchasePanel({
   planPriceLabel,
   hasPlanAccess,
   signedIn,
+  complimentaryAccess = false,
 }: Props) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
+
+  if (complimentaryAccess && product.downloadFilePath) {
+    return (
+      <div className="mt-8 max-w-md space-y-3">
+        <a
+          href={`/api/plan/download/${product.id}`}
+          className="block w-full bg-brand-orange px-6 py-4 text-center text-sm font-bold tracking-[0.16em] text-white transition hover:bg-orange-500"
+        >
+          DOWNLOAD INSTRUCTIONS
+        </a>
+        <p className="text-xs text-white/50">
+          Complimentary staff access — no payment required.
+        </p>
+      </div>
+    );
+  }
 
   // Exclusive membership builds: never sold individually.
   if (product.includedInPlan) {

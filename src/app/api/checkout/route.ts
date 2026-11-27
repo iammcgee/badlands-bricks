@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { isStaffRole } from "@/lib/admin";
+import { auth } from "@/lib/auth";
 import { createDownloadTokensForOrder } from "@/lib/downloads";
 import { prisma } from "@/lib/prisma";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
@@ -21,6 +23,9 @@ export async function POST(request: Request) {
     const json = await request.json();
     const body = bodySchema.parse(json);
 
+    const authSession = await auth();
+    const staffComplimentary = isStaffRole(authSession?.user?.role);
+
     const products = await prisma.product.findMany({
       where: {
         id: { in: body.items.map((item) => item.productId) },
@@ -36,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     const membersOnly = products.filter((product) => product.includedInPlan);
-    if (membersOnly.length > 0) {
+    if (membersOnly.length > 0 && !staffComplimentary) {
       return NextResponse.json(
         {
           error: `${membersOnly.map((p) => p.name).join(", ")} ${
@@ -54,7 +59,8 @@ export async function POST(request: Request) {
       return {
         product,
         quantity: item.quantity,
-        priceCents: product.priceCents,
+        // Staff never pay for designs.
+        priceCents: staffComplimentary ? 0 : product.priceCents,
       };
     });
 
@@ -97,7 +103,7 @@ export async function POST(request: Request) {
     const stripe = getStripe()!;
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-    const session = await stripe.checkout.sessions.create({
+    const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_email: body.email,
       line_items: lineItems.map((item) => ({
@@ -118,10 +124,10 @@ export async function POST(request: Request) {
 
     await prisma.order.update({
       where: { id: order.id },
-      data: { stripeSessionId: session.id },
+      data: { stripeSessionId: checkoutSession.id },
     });
 
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url: checkoutSession.url });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid checkout data" }, { status: 400 });

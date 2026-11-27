@@ -56,6 +56,18 @@ export async function userHasPlanAccess(userId: string): Promise<boolean> {
   return isPlanAccessActive(user.planSubscription);
 }
 
+/** Admins/reviewers never pay for designs — every Build download is complimentary. */
+export async function userHasComplimentaryDesignAccess(
+  userId: string | null | undefined,
+): Promise<boolean> {
+  if (!userId) return false;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  return Boolean(user && isStaffRole(user.role));
+}
+
 /** Active Badlands Plan members can list community MOCs for sale. */
 export async function canUserSellMocs(userId: string | null | undefined) {
   if (!userId) return false;
